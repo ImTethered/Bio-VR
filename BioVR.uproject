@@ -9,11 +9,20 @@
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"AdditionalDependencies": [
-				"Engine"
+				"Engine",
+				"AudioMixer"
 			]
 		}
 	],
 	"Plugins": [
+		{
+			"Name": "Synthesis",
+			"Enabled": true
+		},
+		{
+			"Name": "SoundUtilities",
+			"Enabled": true
+		},
 		{
 			"Name": "SteamAudio",
 			"Enabled": true
