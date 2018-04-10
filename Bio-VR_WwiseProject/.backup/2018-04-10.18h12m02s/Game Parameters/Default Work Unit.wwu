@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{D151AC04-5E04-4A17-92C7-4884679ACA23}" SchemaVersion="80">
+	<GameParameters>
+		<WorkUnit Name="Default Work Unit" ID="{D151AC04-5E04-4A17-92C7-4884679ACA23}" PersistMode="Standalone">
+			<ChildrenList>
+				<GameParameter Name="Distance_from_Enemy" ID="{60392BAF-D81D-4173-9F85-20BCFA59ED12}"/>
+				<GameParameter Name="Heartbeat" ID="{66A97CFF-7376-4B7F-BFB3-258F6411DDBD}"/>
+				<GameParameter Name="Heart_Intensity" ID="{9E212267-D972-40DD-98AB-986D7925C13A}"/>
+				<GameParameter Name="Level" ID="{93C6E574-3E66-4F0B-8E88-6E403BFF43BC}">
+					<PropertyList>
+						<Property Name="InitialValue" Type="Real64" Value="0"/>
+						<Property Name="Max" Type="Real64" Value="6"/>
+					</PropertyList>
+				</GameParameter>
+			</ChildrenList>
+		</WorkUnit>
+	</GameParameters>
+</WwiseDocument>

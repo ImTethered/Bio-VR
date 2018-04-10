@@ -1,0 +1,19 @@
+Event	ID	Name			Wwise Object Path	Notes
+	170015904	Danger_Music			\Default Work Unit\Music\Danger_Music	
+	372195346	Room_Tones			\Default Work Unit\Environment\Room_Tones	
+	530129416	Teleport			\Default Work Unit\Player\Teleport	
+	648990451	Rest_Music			\Default Work Unit\Music\Rest_Music	
+	779278001	Death			\Default Work Unit\Player\Death	
+	861777199	Spot_Player			\Default Work Unit\Enemies\Spot_Player	
+	902717029	Pickup_Item			\Default Work Unit\Objectives\Pickup_Item	
+	1142304696	Enemy_Die			\Default Work Unit\Enemies\Enemy_Die	
+	1526102535	Enemy_Spawn			\Default Work Unit\Enemies\Enemy_Spawn	
+	2025095930	Incidental_Noises			\Default Work Unit\Environment\Incidental_Noises	
+	3141546055	Wheelchair_Move			\Default Work Unit\Player\Wheelchair_Move	
+	3790708028	Door_Unlock			\Default Work Unit\Objectives\Door_Unlock	
+	3859349901	Wheelchair_Turn			\Default Work Unit\Player\Wheelchair_Turn	
+
+In Memory Audio	ID	Name	Audio source file		Wwise Object Path	Notes	Data Size
+	603833643	Test	D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\.cache\Mac\SFX\HAL9K - Room 237_1C9C67B2.wem		\Actor-Mixer Hierarchy\Default Work Unit\Enemy\Test		1039468
+	835491176	HAL9K - Deep Growl	D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\.cache\Mac\SFX\HAL9K - Deep Growl_1C9C67B2.wem		\Actor-Mixer Hierarchy\Default Work Unit\Enemy\HAL9K - Deep Growl		4059296
+

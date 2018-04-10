@@ -5,6 +5,7 @@
 =============================================================================*/
 #pragma once
 
+#include "AkAudioDevice.h"
 #include "AkInclude.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "AkGameplayStatics.generated.h"
@@ -13,27 +14,6 @@
 // Make sure AkPlayingID is always 32 bits, or else we're gonna have a bad time.
 static_assert(sizeof(AkPlayingID) == sizeof(int32), "AkPlayingID is not 32 bits anymore. Change return value of PostEvent functions!");
 
-UENUM(BlueprintType)
-enum class AkChannelConfiguration : uint8
-{
-	Ak_Parent = 0,
-	Ak_1_0,
-	Ak_2_0,
-	Ak_3_0,
-	Ak_4_0,
-	Ak_5_1,
-	Ak_7_1,
-	Ak_5_1_2,
-	Ak_7_1_2,
-	Ak_7_1_4,
-	Ak_Auro_9_1,
-	Ak_Auro_10_1,
-	Ak_Auro_11_1,
-	Ak_Auro_13_1,
-	Ak_Ambisonics_1st_order,
-	Ak_Ambisonics_2nd_order,
-	Ak_Ambisonics_3rd_order
-};
 
 UENUM(BlueprintType)
 enum class PanningRule : uint8
@@ -157,6 +137,33 @@ class AKAUDIO_API UAkGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Audiokinetic|Actor")
 	static void SetSwitch( FName SwitchGroup, FName SwitchState, class AActor* Actor );
 
+    /** Sets multiple positions to a single game object.
+    *  Setting multiple positions on a single game object is a way to simulate multiple emission sources while using the resources of only one voice.
+    *  This can be used to simulate wall openings, area sounds, or multiple objects emitting the same sound in the same area.
+    *  Note: Calling SetMultiplePositions() with only one position is the same as calling SetPosition()
+    *  @param GameObjectAkComponent AkComponent of the game object on which to set positions.
+    *  @param Positions Array of transforms to apply.
+    *  @param MultiPositionType Position type
+    *  @return AK_Success when successful, AK_InvalidParameter if parameters are not valid.
+    *
+    */
+    UFUNCTION(BlueprintCallable, Category = "Audiokinetic")
+    static void SetMultiplePositions(UAkComponent* GameObjectAkComponent, TArray<FTransform> Positions,
+                                     AkMultiPositionType MultiPositionType = AkMultiPositionType::MultiDirections);
+
+    /** Sets multiple positions to a single game object, with flexible assignment of input channels.
+    *  Setting multiple positions on a single game object is a way to simulate multiple emission sources while using the resources of only one voice.
+    *  This can be used to simulate wall openings, area sounds, or multiple objects emitting the same sound in the same area.
+    *  Note: Calling AK::SoundEngine::SetMultiplePositions() with only one position is the same as calling AK::SoundEngine::SetPosition()
+    *  @param GameObjectAkComponent AkComponent of the game object on which to set positions.
+    *  @param ChannelMasks Array of channel masks to apply for each position.
+    *  @param Positions Array of transforms to apply.
+    *  @param MultiPositionType Position type
+    *  @return AK_Success when successful, AK_InvalidParameter if parameters are not valid.
+    */
+    UFUNCTION(BlueprintCallable, Category = "Audiokinetic")
+    static void SetMultipleChannelEmitterPositions(UAkComponent* GameObjectAkComponent, TArray<AkChannelConfiguration> ChannelMasks, TArray<FTransform> Positions,
+                                                   AkMultiPositionType MultiPositionType = AkMultiPositionType::MultiDirections);
 	/**
 	* Sets UseReverbVolumes flag on a specified actor. Set value to true to use reverb volumes on this component.
 	*
@@ -170,26 +177,20 @@ class AKAUDIO_API UAkGameplayStatics : public UBlueprintFunctionLibrary
 	* Sets UseEarlyReflections flag on a specified actor. Set value to true to use calculate and render early reflections on this component.
 	*
 	* @param Actor - Actor on which to set the flag
-	* @param AuxBus	Aux bus that contains the AkReflect plugin
-	* @param Left	Enable reflections off left wall.
-	* @param Right	Enable reflections off right wall.
-	* @param Floor	Enable reflections off floor.
-	* @param Ceiling	Enable reflections off front wall.
-	* @param Back	Enable reflections off front wall.
-	* @param Front	Enable reflections off front wall.
-	* @param EnableSpotReflectors	Enable reflections off spot reflectors.
+	* @param AuxBus Aux bus that contains the AkReflect plugin
+	* @param Order Max Order of reflections.
+	* @param BusSendGain Send gain for the aux bus.
+	* @param MaxPathLength Sound will reflect up to this max distance between emitter and reflective surface.
+	* @param EnableSpotReflectors Enable reflections off spot reflectors.
 	* @param AuxBusName	Aux bus name that contains the AkReflect plugin
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Audiokinetic|Actor", meta = (AdvancedDisplay = "9"))
+	UFUNCTION(BlueprintCallable, Category = "Audiokinetic|Actor", meta = (AdvancedDisplay = "6"))
 	static void UseEarlyReflections(class AActor* Actor, 
 		class UAkAuxBus* AuxBus,
-		bool Left,
-		bool Right,
-		bool Floor,
-		bool Ceiling,
-		bool Back,
-		bool Front,
-		bool SpotReflectors,
+		int Order = 1,
+		float BusSendGain = 1.f,
+		float MaxPathLength = 100000.f,
+		bool SpotReflectors = false,
 		const FString& AuxBusName = FString(""));
 
 	/**
@@ -358,7 +359,6 @@ class AKAUDIO_API UAkGameplayStatics : public UBlueprintFunctionLibrary
 	static bool m_bSoundEngineRecording;
 
 private:
-	static inline void GetChannelConfig(AkChannelConfiguration ChannelConfiguration, AkChannelConfig& config);
 
 	static float OcclusionScalingFactor;
 

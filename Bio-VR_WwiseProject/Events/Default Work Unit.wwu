@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WwiseDocument Type="WorkUnit" ID="{12AD68DB-9D02-48DC-9C70-DA04F28A8E0C}" SchemaVersion="80">
+<WwiseDocument Type="WorkUnit" ID="{12AD68DB-9D02-48DC-9C70-DA04F28A8E0C}" SchemaVersion="85">
 	<Events>
 		<WorkUnit Name="Default Work Unit" ID="{12AD68DB-9D02-48DC-9C70-DA04F28A8E0C}" PersistMode="Standalone">
 			<ChildrenList>
@@ -15,7 +15,20 @@
 					<ChildrenList>
 						<Event Name="Enemy_Die" ID="{7D60977B-1CEE-499B-B2A2-A7D2AD470E4F}"/>
 						<Event Name="Enemy_Spawn" ID="{48674CD9-C2DE-4B79-911C-45AD96C5498C}"/>
-						<Event Name="Spot_Player" ID="{B57AA5E7-048B-452E-ACF7-C48E483B1685}"/>
+						<Event Name="Spot_Player" ID="{B57AA5E7-048B-452E-ACF7-C48E483B1685}">
+							<ChildrenList>
+								<Action Name="" ID="{423DA68F-A1E0-4E37-AD59-5204903CC771}" ShortID="276432333">
+									<PropertyList>
+										<Property Name="ActionType" Type="int16" Value="1"/>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Target">
+											<ObjectRef Name="HAL9K - Deep Growl" ID="{16DF4553-4652-45E5-918D-4B17A99AE920}" WorkUnitID="{09FF2ECA-A38F-4BB8-822B-269E13716D11}"/>
+										</Reference>
+									</ReferenceList>
+								</Action>
+							</ChildrenList>
+						</Event>
 					</ChildrenList>
 				</Folder>
 				<Folder Name="Environment" ID="{709BA831-A792-48AA-B65A-E261DA6A697D}" ShortID="1038761199">
@@ -27,7 +40,20 @@
 				<Folder Name="Objectives" ID="{E224DC0D-9D81-4906-BD2F-9D6E42D94123}" ShortID="415671478">
 					<ChildrenList>
 						<Event Name="Door_Unlock" ID="{F4AD4607-B5D3-4740-9D02-9B9315CD5CBA}"/>
-						<Event Name="Pickup_Item" ID="{4A3EE946-C79C-4858-A87F-C02BE8C017A3}"/>
+						<Event Name="Pickup_Item" ID="{4A3EE946-C79C-4858-A87F-C02BE8C017A3}">
+							<ChildrenList>
+								<Action Name="" ID="{61BA031F-A9A9-42A8-924B-C87197A13D12}" ShortID="321765916">
+									<PropertyList>
+										<Property Name="ActionType" Type="int16" Value="1"/>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Target">
+											<ObjectRef Name="Test" ID="{54450F94-0487-4CF0-BA0F-4B374A90591C}" WorkUnitID="{09FF2ECA-A38F-4BB8-822B-269E13716D11}"/>
+										</Reference>
+									</ReferenceList>
+								</Action>
+							</ChildrenList>
+						</Event>
 					</ChildrenList>
 				</Folder>
 				<Folder Name="Music" ID="{624739EF-BF56-4766-8FBD-DC146DC5567B}" ShortID="576317664">

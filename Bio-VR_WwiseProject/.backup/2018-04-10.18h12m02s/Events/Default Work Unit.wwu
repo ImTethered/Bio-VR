@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{12AD68DB-9D02-48DC-9C70-DA04F28A8E0C}" SchemaVersion="80">
+	<Events>
+		<WorkUnit Name="Default Work Unit" ID="{12AD68DB-9D02-48DC-9C70-DA04F28A8E0C}" PersistMode="Standalone">
+			<ChildrenList>
+				<Folder Name="Player" ID="{82CDE50D-6EFA-421F-BEB3-E4640A7CEAB7}" ShortID="772236802">
+					<ChildrenList>
+						<Event Name="Wheelchair_Move" ID="{2B934DC1-B097-47B4-BD85-DAFE07FF8B46}"/>
+						<Event Name="Wheelchair_Turn" ID="{3A1E7FD2-62F0-4F0D-A057-F8CE9D3D0764}"/>
+						<Event Name="Teleport" ID="{2AAA2914-E74D-4762-BB8E-6937D6A4434E}"/>
+						<Event Name="Death" ID="{70D71C1A-A8C5-41DB-94B6-9B5A0D8F5FE6}"/>
+					</ChildrenList>
+				</Folder>
+				<Folder Name="Enemies" ID="{60BBA4FC-12ED-4A23-BB36-9D6D793A4EB6}" ShortID="872929104">
+					<ChildrenList>
+						<Event Name="Enemy_Die" ID="{7D60977B-1CEE-499B-B2A2-A7D2AD470E4F}">
+							<ChildrenList>
+								<Action Name="" ID="{45463B6E-805A-4977-B7B0-4835BE1231F9}" ShortID="526523842">
+									<PropertyList>
+										<Property Name="ActionType" Type="int16" Value="1"/>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Target">
+											<ObjectRef Name="HAL9K - Deep Growl" ID="{16DF4553-4652-45E5-918D-4B17A99AE920}" WorkUnitID="{09FF2ECA-A38F-4BB8-822B-269E13716D11}"/>
+										</Reference>
+									</ReferenceList>
+								</Action>
+							</ChildrenList>
+						</Event>
+						<Event Name="Enemy_Spawn" ID="{48674CD9-C2DE-4B79-911C-45AD96C5498C}"/>
+						<Event Name="Spot_Player" ID="{B57AA5E7-048B-452E-ACF7-C48E483B1685}"/>
+					</ChildrenList>
+				</Folder>
+				<Folder Name="Environment" ID="{709BA831-A792-48AA-B65A-E261DA6A697D}" ShortID="1038761199">
+					<ChildrenList>
+						<Event Name="Room_Tones" ID="{998DE3F8-C18A-4404-BC7A-E5634FC4975E}"/>
+						<Event Name="Incidental_Noises" ID="{4183D19F-8A01-43CB-A51D-17847B75B9EB}"/>
+					</ChildrenList>
+				</Folder>
+				<Folder Name="Objectives" ID="{E224DC0D-9D81-4906-BD2F-9D6E42D94123}" ShortID="415671478">
+					<ChildrenList>
+						<Event Name="Door_Unlock" ID="{F4AD4607-B5D3-4740-9D02-9B9315CD5CBA}"/>
+						<Event Name="Pickup_Item" ID="{4A3EE946-C79C-4858-A87F-C02BE8C017A3}">
+							<ChildrenList>
+								<Action Name="" ID="{61BA031F-A9A9-42A8-924B-C87197A13D12}" ShortID="321765916">
+									<PropertyList>
+										<Property Name="ActionType" Type="int16" Value="1"/>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Target">
+											<ObjectRef Name="Test" ID="{54450F94-0487-4CF0-BA0F-4B374A90591C}" WorkUnitID="{09FF2ECA-A38F-4BB8-822B-269E13716D11}"/>
+										</Reference>
+									</ReferenceList>
+								</Action>
+							</ChildrenList>
+						</Event>
+					</ChildrenList>
+				</Folder>
+				<Folder Name="Music" ID="{624739EF-BF56-4766-8FBD-DC146DC5567B}" ShortID="576317664">
+					<ChildrenList>
+						<Event Name="Rest_Music" ID="{BC50F281-F495-4AE3-A257-9E3F2103C229}"/>
+						<Event Name="Danger_Music" ID="{4220337B-DBB2-472A-A8DA-875DC354EA1B}"/>
+					</ChildrenList>
+				</Folder>
+			</ChildrenList>
+		</WorkUnit>
+	</Events>
+</WwiseDocument>

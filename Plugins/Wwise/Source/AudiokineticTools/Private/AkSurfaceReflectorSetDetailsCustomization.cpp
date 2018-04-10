@@ -12,7 +12,6 @@
 #include "Text/STextBlock.h"
 #include "Views/SExpanderArrow.h"
 #include "GameFramework/Volume.h"
-#include "Model.h"
 
 #include "Builders/ConeBuilder.h"
 #include "Builders/CubeBuilder.h"
@@ -156,7 +155,7 @@ void FAkSurfaceReflectorSetDetailsCustomization::SetupGeometryModificationHandle
 	// This is to detect if the BrushBuilder changed.
 	if (ReflectorSetBeingCustomized->AcousticPolys.Num() != ReflectorSetBeingCustomized->ParentBrush->Nodes.Num())
 		MyDetailLayout->GetPropertyUtilities()->EnqueueDeferredAction(FSimpleDelegate::CreateSP(this, &FAkSurfaceReflectorSetDetailsCustomization::OnEnableValueChanged));
-
+		
 	// Need to register to a LOT of different properties, because some change the geometry but don't force a refresh of the details panel
 	AVolume* ParentVolume = Cast<AVolume>(ReflectorSetBeingCustomized->GetOwner());
 	UClass* BrushBuilderClass = nullptr;

@@ -2,6 +2,7 @@
 
 #pragma once
 #include "Components/SceneComponent.h"
+#include "GameFramework/Volume.h"
 #include "AkRoomComponent.generated.h"
 
 
@@ -20,19 +21,27 @@ class AKAUDIO_API UAkRoomComponent : public USceneComponent
 	class UAkRoomComponent* NextLowerPriorityComponent;
 
 	/**
-	* The precedence in which the Rooms will be applied. In the case of overlapping tooms, only the one
+	* The precedence in which the Rooms will be applied. In the case of overlapping rooms, only the one
 	* with the highest priority is chosen. If two or more overlapping rooms have the same
 	* priority, the chosen room is unpredictable.
 	*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Room")
 	float Priority;
 
+
+	/**
+	* Used to set the occlusion value in wwise, on emitters in the room, when no audio paths to the listener are found via sound propagation in Wwise Spatial Audio.
+	* This value can be thought of as 'thickness', as it relates to how much sound energy is transmitted through the wall. 
+	* Valid range 0.0f-1.0f, and is mapped to the occlusion curve as defined in the Wwise project.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Room")
+	float WallOcclusion;
+
+
 	/** Register a room in AK Spatial Audio. Can be called again to update the room parameters	*/
-	UFUNCTION(BlueprintCallable, Category = "Audiokinetic|Room")
 	void AddSpatialAudioRoom();
 
 	/** Remove a room from AK Spatial Audio	*/
-	UFUNCTION(BlueprintCallable, Category = "Audiokinetic|Room")
 	void RemoveSpatialAudioRoom();
 
 	bool HasEffectOnLocation(const FVector& Location) const;
@@ -46,6 +55,8 @@ class AKAUDIO_API UAkRoomComponent : public USceneComponent
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+	FName GetName() const;
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
@@ -53,6 +64,7 @@ class AKAUDIO_API UAkRoomComponent : public USceneComponent
 private:
 	class AVolume* ParentVolume;
 
-	void FindPortalsForRoom(TArray<class AAkAcousticPortal*>& out_IntersectingPortals);
 	void InitializeParentVolume();
+
+	bool RoomAdded = false;
 };

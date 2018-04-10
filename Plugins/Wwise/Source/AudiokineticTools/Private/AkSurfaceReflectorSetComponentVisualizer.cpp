@@ -24,7 +24,7 @@ AkWwiseAcousticsComponentVisualizer.cpp:
 void FAkSurfaceReflectorSetComponentVisualizer::DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
 
-	if (GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry))
+	if (GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) || Component == nullptr)
 	{
 		return;
 	}
@@ -47,7 +47,11 @@ void FAkSurfaceReflectorSetComponentVisualizer::DrawVisualization(const UActorCo
 		FVector PolyMidPoint(0,0,0);
 		if (SurfaceReflectorSet->AcousticPolys.Num() > NodeIdx && !SpatialAudioVolume->IsHiddenEd())
 		{
+#if UE_4_19_OR_LATER
+            FDynamicMeshBuilder MeshBuilder(ERHIFeatureLevel::Type::ES2);
+#else
 			FDynamicMeshBuilder MeshBuilder;
+#endif
 			if (SurfaceReflectorSet->ParentBrush->Nodes[NodeIdx].NumVertices > 2)
 			{
 				int32 VertStartIndex = SurfaceReflectorSet->ParentBrush->Nodes[NodeIdx].iVertPool;

@@ -17,23 +17,23 @@ AAkSpatialAudioVolume::AAkSpatialAudioVolume(const class FObjectInitializer& Obj
 	Super(ObjectInitializer)
 {
 	// Property initialization
-	static FName CollisionProfileName(TEXT("OverlapAll"));
+	static const FName CollisionProfileName(TEXT("OverlapAll"));
 	UBrushComponent* BrushComp = GetBrushComponent();
 	if (BrushComp)
 	{
 		BrushComp->SetCollisionProfileName(CollisionProfileName);
 	}
 
-	FString SurfReflSetName = TEXT("SurfaceReflector");
-	SurfaceReflectorSet = ObjectInitializer.CreateDefaultSubobject<UAkSurfaceReflectorSetComponent>(this, FName(*SurfReflSetName));
+	static const FName SurfReflSetName = TEXT("SurfaceReflector");
+	SurfaceReflectorSet = ObjectInitializer.CreateDefaultSubobject<UAkSurfaceReflectorSetComponent>(this, SurfReflSetName);
 	SurfaceReflectorSet->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
 
-	FString LateReverbame = TEXT("LateReverb");
-	LateReverb = ObjectInitializer.CreateDefaultSubobject<UAkLateReverbComponent>(this, FName(*LateReverbame));
+	static const FName LateReverbame = TEXT("LateReverb");
+	LateReverb = ObjectInitializer.CreateDefaultSubobject<UAkLateReverbComponent>(this, LateReverbame);
 	LateReverb->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
 
-	FString RoomName = TEXT("Room");
-	Room = ObjectInitializer.CreateDefaultSubobject<UAkRoomComponent>(this, FName(*RoomName));
+	static const FName RoomName = TEXT("Room");
+	Room = ObjectInitializer.CreateDefaultSubobject<UAkRoomComponent>(this, RoomName);
 	Room->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
 
 	bColored = true;

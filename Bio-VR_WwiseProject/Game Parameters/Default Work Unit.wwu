@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WwiseDocument Type="WorkUnit" ID="{D151AC04-5E04-4A17-92C7-4884679ACA23}" SchemaVersion="80">
+<WwiseDocument Type="WorkUnit" ID="{D151AC04-5E04-4A17-92C7-4884679ACA23}" SchemaVersion="85">
 	<GameParameters>
 		<WorkUnit Name="Default Work Unit" ID="{D151AC04-5E04-4A17-92C7-4884679ACA23}" PersistMode="Standalone">
 			<ChildrenList>
@@ -9,7 +9,7 @@
 				<GameParameter Name="Level" ID="{93C6E574-3E66-4F0B-8E88-6E403BFF43BC}">
 					<PropertyList>
 						<Property Name="InitialValue" Type="Real64" Value="0"/>
-						<Property Name="Max" Type="Real64" Value="7"/>
+						<Property Name="Max" Type="Real64" Value="6"/>
 					</PropertyList>
 				</GameParameter>
 			</ChildrenList>

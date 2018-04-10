@@ -21,7 +21,7 @@ under the Apache License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
 OR CONDITIONS OF ANY KIND, either express or implied. See the Apache License for
 the specific language governing permissions and limitations under the License.
 
-  Version: v2017.1.6  Build: 6446
+  Version: v2017.2.3  Build: 6575
   Copyright (c) 2006-2018 Audiokinetic Inc.
 *******************************************************************************/
 
@@ -65,7 +65,6 @@ the specific language governing permissions and limitations under the License.
 	#endif
 #endif
 
-#define AK_MOTION								///< Internal use
 #define AK_71AUDIO
 #define AK_71FROMSTEREOMIXER
 #define AK_51FROMSTEREOMIXER

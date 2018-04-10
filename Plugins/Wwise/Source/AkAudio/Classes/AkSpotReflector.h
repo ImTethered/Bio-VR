@@ -29,6 +29,8 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AkSpotReflector, meta = (ClampMin = "0.0", ClampMax = "4.0"))
 	float Level;
+
+	AkImageSourceID GetImageSourceID() { return (AkImageSourceID)(uint64)this; }
 	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

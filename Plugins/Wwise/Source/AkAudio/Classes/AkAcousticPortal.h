@@ -6,7 +6,11 @@
 #pragma once
 
 #include "GameFramework/Volume.h"
+#include "AkOcclusionObstructionService.h"
 #include "AkAcousticPortal.generated.h"
+
+class UAkRoomComponent;
+class UAkLateReverbComponent;
 
 UENUM(BlueprintType)
 enum class AkAcousticPortalState : uint8
@@ -21,11 +25,14 @@ class AKAUDIO_API AAkAcousticPortal : public AVolume
 	GENERATED_UCLASS_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AkAcousticPortal)
-	float						Gain;
-
 	virtual void PostRegisterAllComponents() override;
-	virtual void PostUnregisterAllComponents() override;
+	
+	virtual void BeginPlay() override;
+	virtual void BeginDestroy() override;
+
+	void FindConnectedRooms();
+
+	FVector GetExtent() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Audiokinetic|AkAcousticPortal")
 	void OpenPortal();
@@ -39,6 +46,37 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AkAcousticPortal)
 	AkAcousticPortalState InitialState;
 
+	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
+
+	AkRoomID GetFrontRoom() const { return FrontRoom; }
+	AkRoomID GetBackRoom() const { return BackRoom; }
+
+	/** Time interval between obstruction checks (between listener and portal opening). Set to 0 to disable occlusion on this component. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AkAcousticPortal)
+	float ObstructionRefreshInterval;
+
+	/** Collision channel for obstruction checks (between listener and portal opening). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AkAcousticPortal)
+	TEnumAsByte<ECollisionChannel> ObstructionCollisionChannel = ECollisionChannel::ECC_Visibility;
+
 protected:
+
+	template <typename tComponent>
+	void FindConnectedComponents(TMap<UWorld*, tComponent*>& HighestPriorityComponentMap, tComponent*& out_pFront, tComponent*& out_pBack) const;
+
 	int CurrentState;
+
+	AkRoomID FrontRoom;
+	AkRoomID BackRoom;
+
+	AkOcclusionObstructionService ObstructionService;
+};
+
+UCLASS(ClassGroup = Audiokinetic)
+class AKAUDIO_API UAkPortalComponent : public USceneComponent
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+
 };

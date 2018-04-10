@@ -43,11 +43,6 @@
 
 #include "Misc/Paths.h"
 
-#if AK_FIOSYSTEM_AVAILABLE
-#include "Misc/ScopeLock.h"
-#include "HAL/IOBase.h"
-#endif
-
 #include "HAL/PlatformFilemanager.h"
 
 // Device info.
@@ -67,144 +62,6 @@ void AkFileCustomParam::SetupFileDesc(AkFileDesc& fileDesc, AkFileCustomParam* F
 	fileDesc.pCustomParam = FileCustomParam;
 	fileDesc.uCustomParamSize = FileCustomParam ? (sizeof (AkFileCustomParam)) : -1;
 }
-
-
-#if AK_FIOSYSTEM_AVAILABLE
-struct AkDeferredReadInfo
-{
-	enum EAkIOState
-	{
-		// There are no pending requests/ all requests have been fulfilled.
-		ReadyForRequests = -1,
-
-		// Initial request has completed and finalization needs to be kicked off.
-		ReadyForCallback = 0,
-
-		// We're currently loading in data.
-		InProgressLoading = 1,
-	};
-
-	AkDeferredReadInfo(const EAkIOState& state = ReadyForRequests)
-		: State(state)
-		, RequestIndex(0)
-	{}
-
-	AkAsyncIOTransferInfo AkTransferInfo;
-	FThreadSafeCounter State;
-	uint64 RequestIndex;
-
-	void SetState(const EAkIOState& state) { State.Set(state); }
-	bool IsInState(const EAkIOState& state) const { return State.GetValue() == state; }
-};
-
-static bool AkIOSystemReadFileCustomParam_CallbackRegistered = false;
-static FCriticalSection AkIOSystemReadFileCustomParam_CriticalSection;
-static TArray<AkDeferredReadInfo*> AkIOSystemReadFileCustomParam_PendingTransfers;
-
-struct AkIOSystemReadFileCustomParam : AkFileCustomParam
-{
-private:
-	FString FilePath;
-
-	static void GlobalCallback(AK::IAkGlobalPluginContext* in_pContext, AkGlobalCallbackLocation in_eLocation, void* in_pCookie)
-	{
-		FScopeLock ScopeLock(&AkIOSystemReadFileCustomParam_CriticalSection);
-		for (auto& PendingTransfer : AkIOSystemReadFileCustomParam_PendingTransfers)
-		{
-			if (PendingTransfer->IsInState(AkDeferredReadInfo::ReadyForCallback))
-			{
-				if (PendingTransfer->AkTransferInfo.pCallback)
-					PendingTransfer->AkTransferInfo.pCallback(&PendingTransfer->AkTransferInfo, AK_Success);
-
-				PendingTransfer->SetState(AkDeferredReadInfo::ReadyForRequests);
-			}
-		}
-	}
-
-	static AkDeferredReadInfo* GetFreeDeferredReadInfo()
-	{
-		FScopeLock ScopeLock(&AkIOSystemReadFileCustomParam_CriticalSection);
-		for (auto& PendingTransfer : AkIOSystemReadFileCustomParam_PendingTransfers)
-		{
-			if (PendingTransfer->IsInState(AkDeferredReadInfo::ReadyForRequests))
-			{
-				PendingTransfer->SetState(AkDeferredReadInfo::InProgressLoading);
-				return PendingTransfer;
-			}
-		}
-
-		auto PendingTransfer = new AkDeferredReadInfo(AkDeferredReadInfo::InProgressLoading);
-		if (PendingTransfer)
-			AkIOSystemReadFileCustomParam_PendingTransfers.Add(PendingTransfer);
-		return PendingTransfer;
-	}
-
-	static AkDeferredReadInfo* FindDeferredReadInfo(const AkAsyncIOTransferInfo& io_transferInfo)
-	{
-		FScopeLock ScopeLock(&AkIOSystemReadFileCustomParam_CriticalSection);
-		for (auto& PendingTransfer : AkIOSystemReadFileCustomParam_PendingTransfers)
-			if (PendingTransfer->AkTransferInfo.pBuffer == io_transferInfo.pBuffer)
-				return PendingTransfer;
-
-		return nullptr;
-	}
-
-public:
-	AkIOSystemReadFileCustomParam(const FString& path) : FilePath(path) {}
-
-	static void RegisterGlobalCallback()
-	{
-		if (!AkIOSystemReadFileCustomParam_CallbackRegistered && FAkAudioDevice::Get())
-		{
-			AkIOSystemReadFileCustomParam_CallbackRegistered = AK::SoundEngine::RegisterGlobalCallback(GlobalCallback, AkGlobalCallbackLocation_BeginRender, nullptr) == AK_Success;
-			AKASSERT(AkIOSystemReadFileCustomParam_CallbackRegistered && "Failed registering to global callback");
-		}
-	}
-
-	static void UnregisterGlobalCallback()
-	{
-		if (AkIOSystemReadFileCustomParam_CallbackRegistered && FAkAudioDevice::Get())
-		{
-			AK::SoundEngine::UnregisterGlobalCallback(GlobalCallback, AkGlobalCallbackLocation_BeginRender);
-			AkIOSystemReadFileCustomParam_CallbackRegistered = false;
-		}
-	}
-
-	virtual ~AkIOSystemReadFileCustomParam()
-	{
-		FIOSystem::Get().HintDoneWithFile(FilePath);
-	}
-
-	virtual AKRESULT DoWork(AkAsyncIOTransferInfo& info) override
-	{
-		RegisterGlobalCallback();
-
-		auto PendingTransfer = GetFreeDeferredReadInfo();
-		AKASSERT(PendingTransfer && "Failed to allocate an AkDeferredReadInfo structure");
-		if (!PendingTransfer)
-			return AK_Fail;
-
-		PendingTransfer->AkTransferInfo = info;
-		PendingTransfer->RequestIndex = FIOSystem::Get().LoadData(*FilePath, info.uFilePosition, info.uRequestedSize, info.pBuffer, &PendingTransfer->State, AIOP_High);
-
-		return (PendingTransfer->RequestIndex == 0) ? AK_Fail : AK_Success;
-	}
-
-	virtual void Cancel(AkAsyncIOTransferInfo& io_transferInfo, bool& io_bCancelAllTransfersForThisFile) override
-	{
-		auto PendingTransfer = FindDeferredReadInfo(io_transferInfo);
-		if (PendingTransfer)
-		{
-			// Cancel the request. This decrements the thread-safe counter, so our global callback
-			// will call the callback function automatically. The transfer will thus be handled correctly.
-			FIOSystem::Get().CancelRequests(&PendingTransfer->RequestIndex, 1);
-
-			// We only canceled one request, and not all of them.
-			io_bCancelAllTransfersForThisFile = false;
-		}
-	}
-};
-#endif // AK_FIOSYSTEM_AVAILABLE
 
 
 struct AkReadFileCustomParam : AkFileCustomParam
@@ -292,24 +149,6 @@ public:
 };
 
 
-AkFileCustomParam* CreateReadFileCustomParam(const FString& FilePath)
-{
-#if AK_FIOSYSTEM_AVAILABLE
-	if (!GNewAsyncIO)
-		return new AkIOSystemReadFileCustomParam(FilePath);
-#endif // AK_FIOSYSTEM_AVAILABLE
-
-	auto IORequestHandle = FPlatformFileManager::Get().GetPlatformFile().OpenAsyncRead(*FilePath);
-	return IORequestHandle ? new AkReadFileCustomParam(IORequestHandle) : nullptr;
-}
-
-AkFileCustomParam* CreateWriteFileCustomParam(const FString& FilePath)
-{
-	auto FileHandle = FPlatformFileManager::Get().GetPlatformFile().OpenWrite(*FilePath);
-	return FileHandle ? new AkWriteFileCustomParam(FileHandle) : nullptr;
-}
-
-
 // Initialization/termination. Init() registers this object as the one and 
 // only File Location Resolver if none were registered before. Then 
 // it creates a streaming device with scheduler type AK_SCHEDULER_DEFERRED_LINED_UP.
@@ -333,10 +172,6 @@ bool CAkUnrealIOHookDeferred::Init(const AkDeviceSettings& in_deviceSettings)
 
 void CAkUnrealIOHookDeferred::Term()
 {
-#if AK_FIOSYSTEM_AVAILABLE
-	AkIOSystemReadFileCustomParam::UnregisterGlobalCallback();
-#endif // AK_FIOSYSTEM_AVAILABLE
-
 	if (AK::StreamMgr::GetFileLocationResolver() == this)
 		AK::StreamMgr::SetFileLocationResolver(NULL);
 
@@ -365,25 +200,28 @@ AKRESULT CAkUnrealIOHookDeferred::PerformOpen(
 	if (GetFullFilePath(in_fileDescriptor, in_pFlags, in_eOpenMode, &FilePath) != AK_Success || FilePath.IsEmpty())
 		return AK_Fail;
 
-	AkFileCustomParam* FileCustomParam = nullptr;
-
 	if (AK_OpenModeRead == in_eOpenMode)
 	{
 		out_fileDesc.iFileSize = IFileManager::Get().FileSize(*FilePath);
 		if (out_fileDesc.iFileSize > 0)
-			FileCustomParam = CreateReadFileCustomParam(FilePath);
+		{
+			auto IORequestHandle = FPlatformFileManager::Get().GetPlatformFile().OpenAsyncRead(*FilePath);
+			if (IORequestHandle)
+			{
+				AkFileCustomParam::SetupFileDesc(out_fileDesc, new AkReadFileCustomParam(IORequestHandle));
+				return AK_Success;
+			}
+		}
 	}
 	else if (AK_OpenModeWrite == in_eOpenMode || AK_OpenModeWriteOvrwr == in_eOpenMode)
 	{
-		FileCustomParam = CreateWriteFileCustomParam(FilePath);
-		if (FileCustomParam)
+		auto FileHandle = FPlatformFileManager::Get().GetPlatformFile().OpenWrite(*FilePath);
+		if (FileHandle)
+		{
 			io_bSyncOpen = true;
-	}
-
-	if (FileCustomParam)
-	{
-		AkFileCustomParam::SetupFileDesc(out_fileDesc, FileCustomParam);
-		return AK_Success;
+			AkFileCustomParam::SetupFileDesc(out_fileDesc, new AkWriteFileCustomParam(FileHandle));
+			return AK_Success;
+		}
 	}
 
 	return AK_Fail;
@@ -448,9 +286,6 @@ void CAkUnrealIOHookDeferred::Cancel(
 	bool & io_bCancelAllTransfersForThisFile	// Flag indicating whether all transfers should be cancelled for this file (see notes in function description).
 	)
 {
-	auto FileCustomParam = AkFileCustomParam::GetFileCustomParam(in_fileDesc);
-	if (FileCustomParam)
-		FileCustomParam->Cancel(io_transferInfo, io_bCancelAllTransfersForThisFile);
 }
 
 // Close a file.

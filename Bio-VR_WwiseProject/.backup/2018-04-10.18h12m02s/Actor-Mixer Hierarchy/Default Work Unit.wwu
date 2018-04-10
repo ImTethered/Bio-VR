@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{09FF2ECA-A38F-4BB8-822B-269E13716D11}" SchemaVersion="80">
+	<AudioObjects>
+		<WorkUnit Name="Default Work Unit" ID="{09FF2ECA-A38F-4BB8-822B-269E13716D11}" PersistMode="Standalone">
+			<ChildrenList>
+				<ActorMixer Name="Player" ID="{84CED381-0E63-43D3-977B-2DE8CC16B6C5}" ShortID="54830404">
+					<ReferenceList>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{ED0834AF-7E30-4901-B7E8-B543ABC45CD5}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{E107795F-7093-4558-828A-45D89D098F00}"/>
+						</Reference>
+					</ReferenceList>
+				</ActorMixer>
+				<ActorMixer Name="Enemy" ID="{1EBDD662-3DD3-4374-9D5D-42F0BE5AAB8F}" ShortID="734532026">
+					<PropertyList>
+						<Property Name="PositioningType" Type="int16" Value="1"/>
+					</PropertyList>
+					<ReferenceList>
+						<Reference Name="Attenuation">
+							<ObjectRef Name="Base Attenuation" ID="{33961D53-0530-478F-B73D-ABA8715C8DF0}" WorkUnitID="{A53EA3D2-6DBD-4DDF-9CBA-C242610B9C60}"/>
+						</Reference>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{ED0834AF-7E30-4901-B7E8-B543ABC45CD5}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{E107795F-7093-4558-828A-45D89D098F00}"/>
+						</Reference>
+					</ReferenceList>
+					<ChildrenList>
+						<Sound Name="Test" ID="{54450F94-0487-4CF0-BA0F-4B374A90591C}" ShortID="456975745">
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{ED0834AF-7E30-4901-B7E8-B543ABC45CD5}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{E107795F-7093-4558-828A-45D89D098F00}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<AudioFileSource Name="HAL9K - Room 237" ID="{6BAA9910-0AF4-47E9-8CCB-2623B1B75182}" ShortID="603833643">
+									<Language>SFX</Language>
+									<AudioFile>HAL9K - Room 237.wav</AudioFile>
+								</AudioFileSource>
+							</ChildrenList>
+							<ActiveSourceList>
+								<ActiveSource Name="HAL9K - Room 237" ID="{6BAA9910-0AF4-47E9-8CCB-2623B1B75182}" Platform="Linked"/>
+							</ActiveSourceList>
+						</Sound>
+						<Sound Name="HAL9K - Deep Growl" ID="{16DF4553-4652-45E5-918D-4B17A99AE920}" ShortID="763636068">
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{ED0834AF-7E30-4901-B7E8-B543ABC45CD5}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{E107795F-7093-4558-828A-45D89D098F00}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<AudioFileSource Name="HAL9K - Deep Growl" ID="{30124E64-5C09-4938-82B2-F84EB62795A5}" ShortID="835491176">
+									<Language>SFX</Language>
+									<AudioFile>HAL9K - Deep Growl.wav</AudioFile>
+								</AudioFileSource>
+							</ChildrenList>
+							<ActiveSourceList>
+								<ActiveSource Name="HAL9K - Deep Growl" ID="{30124E64-5C09-4938-82B2-F84EB62795A5}" Platform="Linked"/>
+							</ActiveSourceList>
+						</Sound>
+					</ChildrenList>
+				</ActorMixer>
+				<ActorMixer Name="Environment" ID="{E2F65C1B-8CA4-4B1A-8C1C-3BCC96B92EB2}" ShortID="295106093">
+					<PropertyList>
+						<Property Name="PositioningType" Type="int16" Value="1"/>
+					</PropertyList>
+					<ReferenceList>
+						<Reference Name="Attenuation">
+							<ObjectRef Name="Base Attenuation" ID="{33961D53-0530-478F-B73D-ABA8715C8DF0}" WorkUnitID="{A53EA3D2-6DBD-4DDF-9CBA-C242610B9C60}"/>
+						</Reference>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{ED0834AF-7E30-4901-B7E8-B543ABC45CD5}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{E107795F-7093-4558-828A-45D89D098F00}"/>
+						</Reference>
+					</ReferenceList>
+				</ActorMixer>
+			</ChildrenList>
+		</WorkUnit>
+	</AudioObjects>
+</WwiseDocument>

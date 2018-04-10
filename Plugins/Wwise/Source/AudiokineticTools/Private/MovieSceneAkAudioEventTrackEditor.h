@@ -53,4 +53,7 @@ private:
 
 	/** Audio asset selected */
 	void OnAudioAssetSelected(const FAssetData& AssetData, UMovieSceneTrack* Track);
+
+    /** Creates a soundbank generation window. Iterates through all of the sections in the track and adds their required banks to the selected banks in the window.*/
+    static void CreateGenerateSoundbanksWindowForAllSections(UMovieSceneTrack* in_pTrack);
 };

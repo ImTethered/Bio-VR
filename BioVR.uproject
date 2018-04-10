@@ -22,10 +22,6 @@
 		{
 			"Name": "SoundUtilities",
 			"Enabled": true
-		},
-		{
-			"Name": "SteamAudio",
-			"Enabled": true
 		}
 	]
 }

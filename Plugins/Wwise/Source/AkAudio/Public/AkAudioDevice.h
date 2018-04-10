@@ -11,9 +11,14 @@
 ------------------------------------------------------------------------------------*/
 
 #include "AkInclude.h"
+#include <AK/SoundEngine/Common/AkTypes.h>
 #include "AkBankManager.h"
 #include "Engine/EngineBaseTypes.h"
 #include "Engine/EngineTypes.h"
+
+#if WITH_EDITORONLY_DATA
+#include "EditorViewportClient.h"
+#endif
 
 #define GET_AK_EVENT_NAME(AkEvent, EventName) ((AkEvent) ? ((AkEvent)->GetName()) : (EventName))
 
@@ -31,7 +36,7 @@
 
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAkAudio, Log, All);
-
+DECLARE_EVENT(FAkAudioDevice, SoundbanksLoaded);
 /*------------------------------------------------------------------------------------
 	Dependencies, helpers & forward declarations.
 ------------------------------------------------------------------------------------*/
@@ -78,7 +83,46 @@ struct AkGameObjectIdKeyFuncs : TDefaultMapKeyFuncs<AkGameObjectID, ValueType, b
 		}
 	}
 };
+/*------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------*/
+UENUM(BlueprintType)
+enum class AkChannelConfiguration : uint8
+{
+    Ak_Parent = 0,
+	Ak_LFE,
+    Ak_1_0,
+    Ak_2_0,
+	Ak_2_1,
+	Ak_3_0,
+	Ak_3_1,
+	Ak_4_0,
+	Ak_4_1,
+	Ak_5_0,
+	Ak_5_1,
+    Ak_7_1,
+    Ak_5_1_2,
+    Ak_7_1_2,
+    Ak_7_1_4,
+    Ak_Auro_9_1,
+    Ak_Auro_10_1,
+    Ak_Auro_11_1,
+    Ak_Auro_13_1,
+    Ak_Ambisonics_1st_order,
+    Ak_Ambisonics_2nd_order,
+    Ak_Ambisonics_3rd_order
+};
 
+UENUM(BlueprintType)
+enum class AkMultiPositionType : uint8
+{
+    SingleSource = 0, //AK::SoundEngine::MultiPositionType_SingleSource,
+    MultiSources = 1, //AK::SoundEngine::MultiPositionType_MultiSources,
+    MultiDirections = 2, //AK::SoundEngine::MultiPositionType_MultiDirections,
+};
+
+static_assert(static_cast<AK::SoundEngine::MultiPositionType>(AkMultiPositionType::SingleSource) == AK::SoundEngine::MultiPositionType_SingleSource, "AkMultiPositionType::SingleSource does not correspond with its internal Wwise counterpart.");
+static_assert(static_cast<AK::SoundEngine::MultiPositionType>(AkMultiPositionType::MultiSources) == AK::SoundEngine::MultiPositionType_MultiSources, "AkMultiPositionType::MultiSources does not correspond with its internal Wwise counterpart.");
+static_assert(static_cast<AK::SoundEngine::MultiPositionType>(AkMultiPositionType::MultiDirections) == AK::SoundEngine::MultiPositionType_MultiDirections, "AkMultiPositionType::MultiDirections does not correspond with its internal Wwise counterpart.");
 
 /*------------------------------------------------------------------------------------
 	Audiokinetic audio device.
@@ -362,6 +406,38 @@ public:
 	 */
 	class UAkComponent* SpawnAkComponentAtLocation( class UAkAudioEvent* in_pAkEvent, class UAkAuxBus* EarlyReflectionsBus, FVector Location, FRotator Orientation, bool AutoPost, const FString& EventName, const FString& EarlyReflectionsBusName, bool AutoDestroy, class UWorld* in_World );
 
+    /** Seek on an event in the ak soundengine.
+    * @param in_EventName            Name of the event on which to seek.
+    * @param in_pComponent           The associated Actor.
+    * @param in_iPosition            Desired percent where playback should restart.
+    * @param in_bSeekToNearestMarker If true, the final seeking position will be made equal to the nearest marker.
+    *
+    * @return Success or failure.
+    */
+    AKRESULT SeekOnEvent(
+        const FString& in_EventName,
+        AActor* in_pActor,
+        AkReal32 in_fPercent,
+        bool in_bSeekToNearestMarker = false,
+        AkPlayingID InPlayingID = AK_INVALID_PLAYING_ID
+    );
+
+    /** Seek on an event in the ak soundengine.
+    * @param in_EventName            Name of the event on which to seek.
+    * @param in_pComponent           The associated AkComponent.
+    * @param in_fPercent             Desired percent where playback should restart.
+    * @param in_bSeekToNearestMarker If true, the final seeking position will be made equal to the nearest marker.
+    *
+    * @return Success or failure.
+    */
+    AKRESULT SeekOnEvent(
+        const FString& in_EventName,
+        UAkComponent* in_pComponent,
+        AkReal32 in_fPercent,
+        bool in_bSeekToNearestMarker = false,
+        AkPlayingID InPlayingID = AK_INVALID_PLAYING_ID
+    );
+
 	/**
 	 * Post a trigger to ak soundengine
 	 *
@@ -415,7 +491,85 @@ public:
 		const TCHAR * in_pszSwitchState,
 		AActor * in_pActor
 		);
-		
+
+    /** Sets multiple positions to a single game object.
+    *  Setting multiple positions on a single game object is a way to simulate multiple emission sources while using the resources of only one voice.
+    *  This can be used to simulate wall openings, area sounds, or multiple objects emitting the same sound in the same area.
+    *  Note: Calling AK::SoundEngine::SetMultiplePositions() with only one position is the same as calling AK::SoundEngine::SetPosition()
+    *  @param in_pGameObjectAkComponent UAkComponent of the game object.
+    *  @param in_aPositions Array of positions to apply.
+    *  @param in_eMultiPositionType Position type
+    *  @return AK_Success when successful, AK_InvalidParameter if parameters are not valid.
+    */
+    AKRESULT SetMultiplePositions(
+        UAkComponent* in_pGameObjectAkComponent,
+        TArray<FTransform> in_aPositions,
+        AkMultiPositionType in_eMultiPositionType = AkMultiPositionType::MultiDirections
+    );
+
+    /** Sets multiple positions to a single game object, with flexible assignment of input channels.
+    *  Setting multiple positions on a single game object is a way to simulate multiple emission sources while using the resources of only one voice.
+    *  This can be used to simulate wall openings, area sounds, or multiple objects emitting the same sound in the same area.
+    *  Note: Calling AK::SoundEngine::SetMultiplePositions() with only one position is the same as calling AK::SoundEngine::SetPosition()
+    *  @param in_pGameObjectAkComponent Game Object AkComponent.
+    *  @param in_aChannelConfigurations Array of channel configurations for each position.
+    *  @param in_pPositions Array of positions to apply.
+    *  @param in_eMultiPositionType Position type
+    *  @return AK_Success when successful, AK_InvalidParameter if parameters are not valid.
+    */
+    AKRESULT SetMultiplePositions(
+        UAkComponent* in_pGameObjectAkComponent,
+        TArray<AkChannelConfiguration> in_aChannelConfigurations,
+        TArray<FTransform> in_aPositions,
+        AkMultiPositionType in_eMultiPositionType = AkMultiPositionType::MultiDirections
+    );
+
+    /** Sets the position of a game object.
+     *  NOTE: The object's orientation vector (in_Position.Orientation) must be normalized.
+     *  @param in_GameObjectID Game Object identifier
+     *  @param in_Position Position to set; in_Position.Orientation must be normalized.
+     *  @return AK_Success when successful, AK_InvalidParameter if parameters are not valid.
+     */
+    AKRESULT SetPosition(
+        AkGameObjectID in_GameObjectID,
+        const AkSoundPosition & in_Position
+        );
+
+    /** Sets multiple positions to a single game object.
+     *  Setting multiple positions on a single game object is a way to simulate multiple emission sources while using the resources of only one voice.
+     *  This can be used to simulate wall openings, area sounds, or multiple objects emitting the same sound in the same area.
+     *  Note: Calling AK::SoundEngine::SetMultiplePositions() with only one position is the same as calling AK::SoundEngine::SetPosition()
+     *  @param in_GameObjectID Game Object identifier.
+     *  @param in_pPositions Array of positions to apply.
+     *  @param in_NumPositions Number of positions specified in the provided array.
+     *  @param in_eMultiPositionType Position type
+     *  @return AK_Success when successful, AK_InvalidParameter if parameters are not valid.
+     *  
+     */
+    AKRESULT SetMultiplePositions(
+        AkGameObjectID in_GameObjectID,						
+        const AkSoundPosition * in_pPositions,				
+        AkUInt16 in_NumPositions,							
+        AK::SoundEngine::MultiPositionType in_eMultiPositionType = AK::SoundEngine::MultiPositionType_MultiDirections
+        );
+
+    /** Sets multiple positions to a single game object, with flexible assignment of input channels.
+     *  Setting multiple positions on a single game object is a way to simulate multiple emission sources while using the resources of only one voice.
+     *  This can be used to simulate wall openings, area sounds, or multiple objects emitting the same sound in the same area.
+     *  Note: Calling AK::SoundEngine::SetMultiplePositions() with only one position is the same as calling AK::SoundEngine::SetPosition()
+     *  @param in_GameObjectID Game Object identifier.
+     *  @param in_pPositions Array of positions to apply.
+     *  @param in_NumPositions Number of positions specified in the provided array.
+     *  @param in_eMultiPositionType Position type
+     *  @return AK_Success when successful, AK_InvalidParameter if parameters are not valid.
+     */
+    AKRESULT SetMultiplePositions(
+        AkGameObjectID in_GameObjectID,
+        const AkChannelEmitter * in_pPositions,
+        AkUInt16 in_NumPositions,
+        AK::SoundEngine::MultiPositionType in_eMultiPositionType = AK::SoundEngine::MultiPositionType_MultiDirections
+        );
+
 	/**
 	 * Sets occlusion and obstruction values for a game object and a listener.
 	 *
@@ -514,7 +668,9 @@ public:
 	 *
 	 * @param in_playingID		AkPlayingID which should be stopped
 	 */
-	void StopPlayingID( AkPlayingID in_playingID );
+	void StopPlayingID( AkPlayingID in_playingID,
+                        AkTimeMs in_uTransitionDuration = 0,
+                        AkCurveInterpolation in_eFadeCurve = AkCurveInterpolation_Linear);
 
 	/**
 	 * Register an ak audio component with ak sound engine
@@ -547,7 +703,7 @@ public:
 	/**
 	* Send a set of triangles to the Spatial Audio Engine
 	*/
-	AKRESULT AddGeometrySet(AkGeometrySetID AcousticZoneID, AkTriangle* Triangles, AkUInt32 NumTriangles);
+	AKRESULT SetGeometry(AkGeometrySetID AcousticZoneID, AkTriangle* Triangles, AkUInt32 NumTriangles);
 
 	/**
 	* Remove a set of triangles from the Spatial Audio Engine
@@ -613,6 +769,10 @@ public:
 	*/
 	FString GetBasePath();
 
+    /***
+    * Event called when soundbanks are generated
+    */
+    SoundbanksLoaded OnSoundbanksLoaded;
 
 #ifdef AK_SOUNDFRAME
 	/**
@@ -860,8 +1020,11 @@ public:
 	/** Update all rooms. */
 	void UpdateAllSpatialAudioRooms(UWorld* InWorld);
 
+	/** Update all portals. */
+	void UpdateAllSpatialAudioPortals(UWorld* InWorld);
+
 	/** Register a Portal in AK Spatial Audio.  Can be called again to update the portal parameters.	*/
-	void AddSpatialAudioPortal(const AAkAcousticPortal* in_Portal);
+	void SetSpatialAudioPortal(const AAkAcousticPortal* in_Portal);
 	
 	/** Remove a Portal from AK Spatial Audio	*/
 	void RemoveSpatialAudioPortal(const AAkAcousticPortal* in_Portal);
@@ -873,15 +1036,33 @@ public:
 
 	void SetListeners(UAkComponent* in_pEmitter, const TArray<UAkComponent*>& in_listenerSet);
 	void AddDefaultListener(UAkComponent* in_pListener);
+	void RemoveDefaultListener(UAkComponent* in_pListener);
 	void UpdateDefaultActiveListeners();
+#if WITH_EDITORONLY_DATA
+	FTransform GetEditorListenerPosition(int32 ViewIndex) const;
+#endif
 
-	AKRESULT SetEmitterPosition(UAkComponent* in_pListener, const AkTransform& in_SoundPosition, AkTransform* in_VirtualPositions, uint32 in_NumVirtualPositions);
+	/** Choose which listener is used for Wwise Spatial Audio**/
+	void SetSpatialAudioListener(UAkComponent* in_pListener);
+	
+	/** Get the listener that has been choosen to be used for Wwise Spatial Audio**/
+	UAkComponent* GetSpatialAudioListener() const;
 
-	AKRESULT AddRoom(UAkRoomComponent* in_pRoom, const AkRoomParams& in_RoomParams);
+	AKRESULT SetPosition(UAkComponent* in_pListener, const AkTransform& in_SoundPosition);
+
+	AKRESULT SetRoom(UAkRoomComponent* in_pRoom, const AkRoomParams& in_RoomParams);
 	AKRESULT RemoveRoom(UAkRoomComponent* in_pRoom);
 
-	AKRESULT AddImageSource(AkReflectImageSource& in_ImageSourceInfo, AkUniqueID in_AuxBusID, AkRoomID in_RoomID, const FString& in_Name);
+	AKRESULT SetImageSource(class AAkSpotReflector* in_pSpotReflector, const AkImageSourceSettings& in_ImageSourceInfo, AkUniqueID in_AuxBusID, AkRoomID in_RoomID);
 	AKRESULT RemoveImageSource(class AAkSpotReflector* in_pSpotReflector, AkUniqueID in_AuxBusID);
+
+    static void GetChannelConfig(AkChannelConfiguration ChannelConfiguration, AkChannelConfig& config);
+	TMap<UWorld*, class UAkLateReverbComponent*>& GetHighestPriorityLateReverbComponentMap() { return HighestPriorityLateReverbComponentMap; }
+	TMap<UWorld*, class UAkRoomComponent*>& GetHighestPriorityRoomComponentMap() { return HighestPriorityRoomComponentMap; }
+
+	/** Find Components that are prioritized (either UAkLateReverbComponent or UAkRoomComponent) at a given location.**/
+	template<class COMPONENT_TYPE>
+	TArray<COMPONENT_TYPE*> FindPrioritizedComponentsAtLocation(const FVector& Loc, const UWorld* in_World, TMap<UWorld*, COMPONENT_TYPE*>& HighestPriorityComponentMap, int32 depth = FIND_COMPONENTS_DEPTH_INFINITE);
 
 private:
 	bool EnsureInitialized();
@@ -894,6 +1075,12 @@ private:
 
 	// Overload allowing to modify StopWhenOwnerDestroyed after getting the AkComponent
 	AKRESULT GetGameObjectID(AActor * in_pActor, AkGameObjectID& io_GameObject, bool in_bStopWhenOwnerDestroyed );
+
+#if WITH_EDITORONLY_DATA
+	UAkComponent* CreateListener(UWorld* World, FEditorViewportClient* ViewportClient = nullptr);
+	TArray<FTransform> ListenerTransforms;
+	UAkComponent* EditorListener = nullptr;
+#endif
 
 	/** We keep a linked list of UAkLateReverbComponents sorted by priority for faster finding of reverb volumes at a specific location.
 	 *	This points to the highest volume in the list.
@@ -913,13 +1100,11 @@ private:
 	template<class COMPONENT_TYPE>
 	void RemovePrioritizedComponentFromList(COMPONENT_TYPE* in_ComponentToRemove, TMap<UWorld*, COMPONENT_TYPE*>& HighestPriorityComponentMap);
 
-	/** Find Components that are prioritized (either UAkLateReverbComponent or UAkRoomComponent) at a given location.**/
-	template<class COMPONENT_TYPE>
-	TArray<COMPONENT_TYPE*> FindPrioritizedComponentsAtLocation(const FVector& Loc, const UWorld* in_World, TMap<UWorld*, COMPONENT_TYPE*>& HighestPriorityComponentMap, int32 depth = FIND_COMPONENTS_DEPTH_INFINITE);
-
 	static bool m_bSoundEngineInitialized;
 	UAkComponentSet m_defaultListeners;
 	UAkComponentSet m_defaultEmitters;
+
+	UAkComponent* m_SpatialAudioListener;
 
 	// OCULUS_START - vhamm - suspend audio when not in focus
 	bool m_isSuspended;

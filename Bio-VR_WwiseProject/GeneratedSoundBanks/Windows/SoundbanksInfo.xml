@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="11" SoundbankVersion="128">
+	<RootPaths>
+		<ProjectRoot>D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\</ProjectRoot>
+		<SourceFilesRoot>D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\.cache\Windows\</SourceFilesRoot>
+		<SoundBanksRoot>D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\GeneratedSoundBanks\Windows\</SoundBanksRoot>
+		<ExternalSourcesInputFile></ExternalSourcesInputFile>
+		<ExternalSourcesOutputRoot>D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\GeneratedSoundBanks\Windows</ExternalSourcesOutputRoot>
+	</RootPaths>
+	<DialogueEvents/>
+	<StreamedFiles/>
+	<MediaFilesNotInAnyBank/>
+	<SoundBanks>
+		<SoundBank Id="1355168291" Language="SFX">
+			<ObjectPath>Init</ObjectPath>
+			<ShortName>Init</ShortName>
+			<Path>Init.bnk</Path>
+		</SoundBank>
+		<SoundBank Id="3161908922" Language="SFX">
+			<ObjectPath>\SoundBanks\Default Work Unit\Main</ObjectPath>
+			<ShortName>Main</ShortName>
+			<Path>Main.bnk</Path>
+			<IncludedEvents>
+				<Event Id="170015904" Name="Danger_Music" ObjectPath="\Events\Default Work Unit\Music\Danger_Music"/>
+				<Event Id="779278001" Name="Death" ObjectPath="\Events\Default Work Unit\Player\Death"/>
+				<Event Id="3790708028" Name="Door_Unlock" ObjectPath="\Events\Default Work Unit\Objectives\Door_Unlock"/>
+				<Event Id="1142304696" Name="Enemy_Die" ObjectPath="\Events\Default Work Unit\Enemies\Enemy_Die"/>
+				<Event Id="1526102535" Name="Enemy_Spawn" ObjectPath="\Events\Default Work Unit\Enemies\Enemy_Spawn"/>
+				<Event Id="2025095930" Name="Incidental_Noises" ObjectPath="\Events\Default Work Unit\Environment\Incidental_Noises"/>
+				<Event Id="902717029" Name="Pickup_Item" ObjectPath="\Events\Default Work Unit\Objectives\Pickup_Item"/>
+				<Event Id="648990451" Name="Rest_Music" ObjectPath="\Events\Default Work Unit\Music\Rest_Music"/>
+				<Event Id="372195346" Name="Room_Tones" ObjectPath="\Events\Default Work Unit\Environment\Room_Tones"/>
+				<Event Id="861777199" Name="Spot_Player" ObjectPath="\Events\Default Work Unit\Enemies\Spot_Player"/>
+				<Event Id="530129416" Name="Teleport" ObjectPath="\Events\Default Work Unit\Player\Teleport"/>
+				<Event Id="3141546055" Name="Wheelchair_Move" ObjectPath="\Events\Default Work Unit\Player\Wheelchair_Move"/>
+				<Event Id="3859349901" Name="Wheelchair_Turn" ObjectPath="\Events\Default Work Unit\Player\Wheelchair_Turn"/>
+			</IncludedEvents>
+			<IncludedMemoryFiles>
+				<File Id="603833643" Language="SFX">
+					<ShortName>HAL9K - Room 237.wav</ShortName>
+					<Path>SFX\HAL9K - Room 237_1C9C67B2.wem</Path>
+				</File>
+				<File Id="835491176" Language="SFX">
+					<ShortName>HAL9K - Deep Growl.wav</ShortName>
+					<Path>SFX\HAL9K - Deep Growl_1C9C67B2.wem</Path>
+				</File>
+			</IncludedMemoryFiles>
+		</SoundBank>
+	</SoundBanks>
+</SoundBanksInfo>

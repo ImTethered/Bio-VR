@@ -7,14 +7,21 @@
 #include "MovieSceneExecutionToken.h"
 #include "IMovieScenePlayer.h"
 
-
+/** Defines the behaviour of an AKAdioEventSection within UE sequencer. */
 struct FMovieSceneAkAudioEventSectionData
 {
 	FMovieSceneAkAudioEventSectionData(const UMovieSceneAkAudioEventSection& InSection)
-		: EventName(InSection.GetEventName())
-		, StartTime(InSection.GetStartTime())
-		, StopAtSectionEnd(InSection.GetStopAtSectionEnd())
-	{}
+		: EventTracker(InSection.EventTracker)
+	{
+        EventTracker->bStopAtSectionEnd = InSection.EventShouldStopAtSectionEnd();
+        EventTracker->EventName         = InSection.GetEventName();
+        EventTracker->ClipStartTime     = InSection.GetStartTime();
+        EventTracker->ClipEndTime       = InSection.GetEndTime();
+        EventTracker->EventDuration     = InSection.GetEventDuration();
+        EventTracker->EmptyPlayingIDs();
+        EventTracker->EmptyScheduledStops();
+        RetriggerEvent = InSection.ShouldRetriggerEvent();
+    }
 
 	void Update(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, IMovieScenePlayer& Player, FAkAudioDevice* AudioDevice)
 	{
@@ -22,99 +29,237 @@ struct FMovieSceneAkAudioEventSectionData
 
 		switch (Player.GetPlaybackStatus())
 		{
-		case EMovieScenePlayerStatus::Stopped:
-			StopAllPlayingIDs(AudioDevice);
-			break;
+		    case EMovieScenePlayerStatus::Stopped:
+            {
+                ResetTracker(AudioDevice);
+                break;
+            }
+		    case EMovieScenePlayerStatus::Playing:
+            {
+                /* We use a slight hack to support looping in the UE sequencer, by checking If our current time is <= the previous event start time.*/
+                const float CurrentTime = (float)Context.GetTime();
+                bool bSequencerHasLooped = CurrentTime <= EventTracker->PreviousPlayingTime;
+                /* If the section is played and no Wwise event has been triggered */
+                if ((Context.GetDirection() == EPlayDirection::Forwards && !EventTracker->IsPlaying()) || bSequencerHasLooped)
+                {
+                    /* If the sequencer has looped, we want to kill any currently playing events */
+                    if (EventTracker->IsPlaying() && bSequencerHasLooped)
+                        WwiseEventTriggering::StopAllPlayingIDs(AudioDevice, *EventTracker);
 
-		case EMovieScenePlayerStatus::Playing:
-			if (Context.GetDirection() == EPlayDirection::Forwards && !IsPlaying() && Context.GetTime() > StartTime && Context.GetPreviousTime() <= StartTime)
-			{
-				if (Operand.ObjectBindingID.IsValid())
-				{	// Object binding audio track
-					for (auto ObjectPtr : Player.FindBoundObjects(Operand))
-					{
-						auto Object = ObjectPtr.Get();
-						auto PlayingID = PostEvent(Object, AudioDevice);
-						TryAddPlayingID(PlayingID);
-					}
-				}
-				else
-				{	// Master audio track
-					AActor* DummyActor = nullptr;
-					auto PlayingID = AudioDevice->PostEvent(EventName, DummyActor);
-					TryAddPlayingID(PlayingID);
-				}
-			}
-			break;
+                    /* If the section has a valid object binding */
+                    if (Operand.ObjectBindingID.IsValid())
+                    {
+                        /* If the Wwise event hasn't been previously triggered */
+                        if (EventTracker->PreviousEventStartTime == -1.0f || bSequencerHasLooped)
+                            ObjectBindingPlay(AudioDevice, Player.FindBoundObjects(Operand), Context);
+                        else if (RetriggerEvent)
+                            ObjectBindingRetrigger(AudioDevice, Player.FindBoundObjects(Operand), Context);
+                    }
+                    else /* Otherwwise play or re-trigger the Wwise event on a dummy object. */
+                    {
+                        if (EventTracker->PreviousEventStartTime == -1.0f || bSequencerHasLooped)
+                            MasterPlay(AudioDevice, Context);
+                        else if (RetriggerEvent)
+                            MasterRetrigger(AudioDevice, Context);
+                    }
+                }
+                EventTracker->PreviousPlayingTime = CurrentTime;
+                break;
+            }
+            case EMovieScenePlayerStatus::Scrubbing:
+            case EMovieScenePlayerStatus::Stepping:
+            case EMovieScenePlayerStatus::Jumping:
+            {
+                AkReal32 ProportionalTime = GetProportionalTime(Context);
+                if (Operand.ObjectBindingID.IsValid())
+                {
+                    ObjectBindingScrub(AudioDevice, Player.FindBoundObjects(Operand), Context);
+                }
+                else
+                {
+                    MasterScrub(AudioDevice, Context);
+                }
+                break;
+            }
 		}
 	}
 
-	void StopAllPlayingIDs(FAkAudioDevice* AudioDevice)
-	{
-		if (AudioDevice)
-		{
-			for (auto PlayingID : PlayingIDs)
-				AudioDevice->StopPlayingID(PlayingID);
-		}
-		PlayingIDs.Empty();
-	}
+    void ResetTracker(FAkAudioDevice* AudioDevice) 
+    {
+        if (EventTracker->bStopAtSectionEnd)
+            WwiseEventTriggering::StopAllPlayingIDs(AudioDevice, *EventTracker);
+        EventTracker->PreviousEventStartTime = -1.0f;
+        EventTracker->PreviousPlayingTime = -1.0f;
+        EventTracker->RetriggeredEventDescriptors.Empty();
+    }
 
-	bool GetStopAtSectionEnd() const { return StopAtSectionEnd; }
+    TSharedPtr<FWwiseEventTracker> GetEventTracker() { return EventTracker; }
 
 private:
-	AkPlayingID PostEvent(UObject* Object, FAkAudioDevice* AudioDevice)
-	{
-		ensure(AudioDevice != nullptr);
+    /** Empty previous retriggered events, play the Wwise event, and seek to the current time. */
+    void ObjectBindingPlay(FAkAudioDevice* AudioDevice, TArrayView<TWeakObjectPtr<>> BoundObjects, const FMovieSceneContext& Context)
+    {
+        if (EventTracker.IsValid() && EventShouldPlay(Context))
+        {
+            EventTracker->RetriggeredEventDescriptors.Empty();
+            const float CurrentTime = (float)Context.GetTime();
+            for (auto ObjectPtr : BoundObjects)
+            {
+                auto Object = ObjectPtr.Get();
+                AkPlayingID PlayingID = WwiseEventTriggering::PostEvent(Object, AudioDevice, *EventTracker, CurrentTime);
+                WwiseEventTriggering::SeekOnEvent(Object, AudioDevice, GetProportionalTime(Context), *EventTracker, PlayingID);
+                EventTracker->PreviousEventStartTime = CurrentTime;
+            }
+        }
+    }
 
-		if (Object)
-		{
-			auto AkComponent = Cast<UAkComponent>(Object);
+    /** Play the Wwise event, store the event start time in the event tracker, and jump to the current time. */
+    void ObjectBindingRetrigger(FAkAudioDevice* AudioDevice, TArrayView<TWeakObjectPtr<>> BoundObjects, const FMovieSceneContext& Context)
+    {
+        if (EventTracker.IsValid() && EventShouldPlay(Context))
+        {
+            const float CurrentTime = (float)Context.GetTime();
+            for (auto ObjectPtr : BoundObjects)
+            {
+                auto Object = ObjectPtr.Get();
+                AkPlayingID PlayingID = WwiseEventTriggering::PostEvent(Object, AudioDevice, *EventTracker, CurrentTime);
+                EventTracker->PreviousEventStartTime = CurrentTime;
+                WwiseEventTriggering::SeekOnEvent(Object, AudioDevice, GetProportionalTime(Context), *EventTracker, PlayingID);
+            }
+        }
+    }
 
-			if (!IsValid(AkComponent))
-			{
-				auto Actor = CastChecked<AActor>(Object);
-				if (IsValid(Actor))
-					AkComponent = AudioDevice->GetAkComponent(Actor->GetRootComponent(), FName(), NULL, EAttachLocation::KeepRelativeOffset);
-			}
+    /** Empty previous retriggered events, play the Wwise event, and seek to the current time. */
+    void MasterPlay(FAkAudioDevice* AudioDevice, const FMovieSceneContext& Context)
+    {
+        if (EventTracker.IsValid() && EventShouldPlay(Context))
+        {
+            EventTracker->RetriggeredEventDescriptors.Empty();
+            EventTracker->PreviousEventStartTime = EventTracker->ClipStartTime;
+            const float CurrentTime = (float)Context.GetTime();
+            AkPlayingID PlayingID = WwiseEventTriggering::PostEventOnDummyObject(AudioDevice, *EventTracker, CurrentTime);
+            WwiseEventTriggering::SeekOnEventWithDummyObject(AudioDevice, GetProportionalTime(Context), *EventTracker, PlayingID);
+            EventTracker->PreviousEventStartTime = CurrentTime;
+        }
+    }
 
-			if (IsValid(AkComponent))
-				return AkComponent->PostAkEventByName(EventName);
-		}
+    /** Play the Wwise event, store the event start time in the event tracker, and jump to the current time. */
+    void MasterRetrigger(FAkAudioDevice* AudioDevice, const FMovieSceneContext& Context)
+    {
+        if (EventTracker.IsValid() && EventShouldPlay(Context))
+        {
+            const float CurrentTime = (float)Context.GetTime();
+            AkPlayingID PlayingID = WwiseEventTriggering::PostEventOnDummyObject(AudioDevice, *EventTracker, CurrentTime);
+            EventTracker->PreviousEventStartTime = CurrentTime;
+            WwiseEventTriggering::SeekOnEventWithDummyObject(AudioDevice, GetProportionalTime(Context), *EventTracker, PlayingID);
+        }
+    }
 
-		return AK_INVALID_PLAYING_ID;
-	}
+    void ObjectBindingScrub(FAkAudioDevice* AudioDevice, TArrayView<TWeakObjectPtr<>> BoundObjects, const FMovieSceneContext& Context)
+    {
+        if (EventTracker.IsValid() && EventShouldPlay(Context))
+        {
+            EventTracker->RetriggeredEventDescriptors.Empty();
+            AkReal32 ProportionalTime = GetProportionalTime(Context);
+            const float CurrentTime = (float)Context.GetTime();
+            for (auto ObjectPtr : BoundObjects)
+            {
+                auto Object = ObjectPtr.Get();
 
-	void TryAddPlayingID(const AkPlayingID& PlayingID)
-	{
-		if (PlayingID != AK_INVALID_PLAYING_ID)
-			PlayingIDs.Add(PlayingID);
-	}
+                if (!EventTracker->IsPlaying())
+                {
+                    WwiseEventTriggering::TriggerScrubSnippet(Object, AudioDevice, *EventTracker);
+                    EventTracker->PreviousEventStartTime = -1.0f;
+                }
+                else if (!EventTracker->HasScheduledStop())
+                {
+                    WwiseEventTriggering::ScheduleStopEventsForCurrentlyPlayingIDs(AudioDevice, *EventTracker);
+                }
+                WwiseEventTriggering::SeekOnEvent(Object, AudioDevice, ProportionalTime, *EventTracker);
+            }
+        }
+    }
 
-	bool IsPlaying() const { return PlayingIDs.Num() > 0; }
+    void MasterScrub(FAkAudioDevice* AudioDevice, const FMovieSceneContext& Context)
+    {
+        if (EventTracker.IsValid() && EventShouldPlay(Context))
+        {
+            EventTracker->RetriggeredEventDescriptors.Empty();
+            AkReal32 ProportionalTime = GetProportionalTime(Context);
+            const float CurrentTime = (float)Context.GetTime();
+            if (!EventTracker->IsPlaying())
+            {
+                WwiseEventTriggering::TriggerScrubSnippetOnDummyObject(AudioDevice, *EventTracker);
+            }
+            else if (!EventTracker->HasScheduledStop())
+            {
+                WwiseEventTriggering::ScheduleStopEventsForCurrentlyPlayingIDs(AudioDevice, *EventTracker);
+            }
+            EventTracker->PreviousEventStartTime = -1.0f;
+            WwiseEventTriggering::SeekOnEventWithDummyObject(AudioDevice, ProportionalTime, *EventTracker);
+        }
+    }
 
-	FString EventName;
-	float StartTime;
-	bool StopAtSectionEnd;
+    /** Checks whether the current time is less than the maximum estimated duration OR if the event is set to retrigger. */
+    bool EventShouldPlay(const FMovieSceneContext& Context)
+    {
+        const double PreviousStartTime = EventTracker->PreviousEventStartTime == -1.0f ? EventTracker->ClipStartTime
+                                                                                       : EventTracker->PreviousEventStartTime;
+        const double CurrentTime = Context.GetTime() - PreviousStartTime;
+        return CurrentTime < EventTracker->EventDuration.GetUpperBoundValue() || RetriggerEvent;
+    }
 
-	TArray<AkPlayingID> PlayingIDs;
+    /** Returns the current time as a proportion of the maximum duration (0 - 1) */
+    AkReal32 GetProportionalTime(const FMovieSceneContext& Context)
+    {
+        if (EventTracker.IsValid())
+        {
+            auto DurationRange = EventTracker->EventDuration;
+            // If max and min duration values from metadata are equal, we can assume a deterministic event.
+            if (DurationRange.GetLowerBoundValue() == DurationRange.GetUpperBoundValue() && DurationRange.GetUpperBoundValue() != 0.0f)
+            {
+                const float MaxDuration = DurationRange.GetUpperBoundValue();
+                const double PreviousStartTime = EventTracker->PreviousEventStartTime == -1.0f ? EventTracker->ClipStartTime
+                                                                                               : EventTracker->PreviousEventStartTime;
+                const double CurrentTime = Context.GetTime() - PreviousStartTime;
+                // We may want to retrigger depending on the modulo time.
+                if (MaxDuration > 0.0f)
+                    return (float)fmod(CurrentTime, (double)MaxDuration) / MaxDuration;
+            }
+            else // Otherwise we need to use the estimated duration for the current event.
+            {
+                const double PreviousStartTime = EventTracker->PreviousEventStartTime == -1.0f ? EventTracker->ClipStartTime
+                                                                                               : EventTracker->PreviousEventStartTime;
+                const double CurrentTime = Context.GetTime() - PreviousStartTime;
+                const float CurrentDuration = EventTracker->CurrentDurationEstimation;
+                // If current duration is uninitialized, use the clip's duration.
+                const float MaxDuration = CurrentDuration == -1.0f ? (float)EventTracker->GetClipDuration() : CurrentDuration;
+                if (MaxDuration > 0.0f)
+                    return (float)fmod(CurrentTime, (double)MaxDuration) / MaxDuration;
+            }
+        }
+        return 0.0f;
+    }
+
+    TSharedPtr<FWwiseEventTracker> EventTracker;
+    bool RetriggerEvent = false;
 };
-
 
 struct FAkAudioEventEvaluationData : IPersistentEvaluationData
 {
-	TSharedPtr<FMovieSceneAkAudioEventSectionData> SectionData;
+    TSharedPtr<FMovieSceneAkAudioEventSectionData> SectionData;
 };
-
 
 struct FAkAudioEventExecutionToken : IMovieSceneExecutionToken
 {
-	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
+	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, 
+                         FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 	{
 		auto AudioDevice = FAkAudioDevice::Get();
 		if (!AudioDevice)
 			return;
-
-		TSharedPtr<FMovieSceneAkAudioEventSectionData> SectionData = PersistentData.GetSectionData<FAkAudioEventEvaluationData>().SectionData;
+        auto persistentData = PersistentData.GetSectionData<FAkAudioEventEvaluationData>();
+		TSharedPtr<FMovieSceneAkAudioEventSectionData> SectionData = persistentData.SectionData;
 		if (SectionData.IsValid())
 			SectionData->Update(Context, Operand, Player, AudioDevice);
 	}
@@ -123,10 +268,10 @@ struct FAkAudioEventExecutionToken : IMovieSceneExecutionToken
 
 FMovieSceneAkAudioEventTemplate::FMovieSceneAkAudioEventTemplate(const UMovieSceneAkAudioEventSection* InSection)
 	: Section(InSection)
-{
-}
+{}
 
-void FMovieSceneAkAudioEventTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
+void FMovieSceneAkAudioEventTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, 
+                                               const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
 	auto AudioDevice = FAkAudioDevice::Get();
 	if (!AudioDevice)
@@ -142,7 +287,7 @@ void FMovieSceneAkAudioEventTemplate::Setup(FPersistentEvaluationData& Persisten
 		return;
 
 	if (Section)
-		PersistentData.AddSectionData<FAkAudioEventEvaluationData>().SectionData = MakeShareable(new FMovieSceneAkAudioEventSectionData(*Section));
+        PersistentData.AddSectionData<FAkAudioEventEvaluationData>().SectionData = MakeShareable(new FMovieSceneAkAudioEventSectionData(*Section));
 }
 
 void FMovieSceneAkAudioEventTemplate::TearDown(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
@@ -150,8 +295,7 @@ void FMovieSceneAkAudioEventTemplate::TearDown(FPersistentEvaluationData& Persis
 	auto AudioDevice = FAkAudioDevice::Get();
 	if (!AudioDevice)
 		return;
-
 	TSharedPtr<FMovieSceneAkAudioEventSectionData> SectionData = PersistentData.GetSectionData<FAkAudioEventEvaluationData>().SectionData;
-	if (SectionData.IsValid() && SectionData->GetStopAtSectionEnd())
-		SectionData->StopAllPlayingIDs(AudioDevice);
+	if (SectionData.IsValid())
+        SectionData->ResetTracker(AudioDevice);
 }

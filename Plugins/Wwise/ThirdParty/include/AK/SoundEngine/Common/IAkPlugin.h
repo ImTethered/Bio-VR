@@ -21,7 +21,7 @@ under the Apache License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
 OR CONDITIONS OF ANY KIND, either express or implied. See the Apache License for
 the specific language governing permissions and limitations under the License.
 
-  Version: v2017.1.6  Build: 6446
+  Version: v2017.2.3  Build: 6575
   Copyright (c) 2006-2018 Audiokinetic Inc.
 *******************************************************************************/
 
@@ -50,11 +50,7 @@ the specific language governing permissions and limitations under the License.
 #include <xmmintrin.h>
 #endif
 
-#ifdef AK_VITA_HW
-#include <ngs.h>
-#endif
-
-
+/// Oldest version of Wwise supported by the plug-ins compiled for this version.
 #define AK_OLDEST_SUPPORTED_WWISESDK_VERSION ((2017<<8) | 1)
 
 /// Plug-in information structure.
@@ -237,16 +233,14 @@ namespace AK
 		/// \return The interface to GameObject info.
 		virtual IAkGameObjectPluginInfo * GetGameObjectInfo() = 0;
 
-		/// Identify the mixing graph where the plug-in is instantiated by getting the end-point's
-		/// output ID and device type that were given to AddSecondaryOutput(). Primary output graph
-		/// returns out_uOutputID = 0 and out_uDeviceType = (AkUInt32)AkOutput_Main.
-		/// Applicable to plug-ins instantiated in the Master-Mixer hierarchy only (bus insert, mixer, sink).
+		/// Identify the output device into which the data processed by this plugin will end up.
+		/// Applicable to plug-ins instantiated as bus effects and to sink plugins.
 		/// Plug-ins instantiated in the Actor-Mixer hierarchy (i.e. on voices) return AK_NotCompatible.
 		/// \sa integrating_secondary_outputs
 		/// \return The device type and unique identifier. AK_Success if successful, AK_NotCompatible otherwise.
 		virtual AKRESULT GetOutputID(
 			AkUInt32 &			out_uOutputID,		///< Device identifier, when multiple devices of the same type are possible.
-			AkUInt32 &			out_uDeviceType		///< Device type, must be one of the currently supported devices types.  Can be casted to platforms-specific AkAudioOutputType.
+			AkPluginID &		out_uDevicePlugin	///< Device plugin ID.
 			) const = 0;
 
 		/// Return the pointer and size of the plug-in media corresponding to the specified index.
@@ -412,11 +406,12 @@ namespace AK
 		/// \sa AK::SoundEngine::GetIDFromString()
 		virtual AkUniqueID GetBusID() = 0;
 
+		/// DEPRECATED.  
 		/// Get the type of the bus on which the mixer plugin is instantiated.
 		/// AkBusHierachyFlags is a bit field, indicating whether the bus is the master (top-level) bus or not,
 		/// and whether it is in the primary or secondary mixing graph.
 		/// \return The bus type.
-		virtual AkBusHierarchyFlags GetBusType() = 0;
+		virtual AkUInt32 GetBusType() = 0;
 
 		/// Get speaker angles of the specified device.
 		/// The speaker angles are expressed as an array of loudspeaker pairs, in degrees, relative to azimuth ]0,180].
@@ -700,13 +695,6 @@ namespace AK
 			IAkPluginParam *			in_pParams,					///< Interface to plug-in parameters
 			AkAudioFormat &				io_rFormat					///< Audio data format of the input/output signal. Only an out-of-place plugin is allowed to change the channel configuration.
 			) = 0;
-
-#ifdef AK_VITA_HW
-		virtual const SceNgsVoiceDefinition * GetVoiceDefinition(){ AKASSERT( false && "Non hardware plugin called on Vita HW" ); return NULL; }
-		virtual AKRESULT AttachVoice( SceNgsHVoice in_hVoice){ AKASSERT( false && "Non hardware plugin called on Vita HW" ); return AK_Fail; }
-		virtual AkReal32 GetTailTime() const { AKASSERT( false && "Non hardware plugin called on Vita HW" ); return 0; }
-		virtual AKRESULT SetBypass( SceUInt32 in_uBypassFlag ) { AKASSERT( false && "Non hardware plugin called on Vita HW" ); return AK_Fail; }
-#endif
 	};
 
 	/// Software effect plug-in interface for in-place processing (see \ref soundengine_plugins_effects).
@@ -810,6 +798,7 @@ namespace AK
 		/// When the object's panner type is "3D", IsSpatializationEnabled returns true if option "Enable Spatialization" is ticked.
 		/// \return True if spatialization is enabled, false otherwise.
 		/// \sa GetPannerType()
+		/// \akwarning This function is deprecated and will be removed in a future release.\endakwarning
 		virtual bool IsSpatializationEnabled() = 0;
 
 		/// Retrieve center percentage of this input.
@@ -890,6 +879,14 @@ namespace AK
 			AK::SpeakerVolumes::MatrixPtr out_mxPrevVolumes,	///< Returned in/out channel volume distribution corresponding to the beginning of the buffer. Must be preallocated (see AK::SpeakerVolumes::Matrix services).
 			AK::SpeakerVolumes::MatrixPtr out_mxNextVolumes		///< Returned in/out channel volume distribution corresponding to the end of the buffer. Must be preallocated (see AK::SpeakerVolumes::Matrix services).
 			) = 0;
+
+		/// Query the 3D spatialization mode used by this input.
+		/// \return The 3D spatialization mode (see Ak3DSpatializationMode). AK_SpatializationMode_None if not set (2D).
+		virtual Ak3DSpatializationMode Get3DSpatializationMode() = 0;
+
+		/// Get whether the panner is enabled.
+		/// \return True if the "Enable Panner" option is ticked.
+		virtual bool IsPannerEnabled() = 0;
 
 		//@}
 	};
@@ -987,17 +984,17 @@ namespace AK
 			AkRamp					in_gain					///< Volume gain to apply to this input (prev corresponds to the beginning, next corresponds to the end of the buffer).
 			) = 0;
 
-		/// Called at the end of the audio frame. Plugins do whatever bookkeeping needed.
+		/// Called at the end of the audio frame. If no Consume calls were made prior to OnFrameEnd, this means no audio was sent to the device.  Assume silence.  
 		/// \sa
 		/// - AK::IAkSinkPlugin::Consume()
 		virtual void OnFrameEnd() = 0;
 
-		/// Ask the plugin whether starvation occurred.
+		/// Ask the plug-in whether starvation occurred.
 		/// \return True if starvation occurred, false otherwise.
 		virtual bool IsStarved() = 0;
 
 		/// Reset the "starvation" flag after IsStarved() returned true.
-		virtual void ResetStarved() = 0;
+		virtual void ResetStarved() = 0;		
 	};
 
 	/// Wwise sound engine source plug-in interface (see \ref soundengine_plugins_source).
@@ -1099,6 +1096,9 @@ namespace AK
 AK_CALLBACK( AK::IAkPlugin*, AkCreatePluginCallback )( AK::IAkPluginMemAlloc * in_pAllocator );
 /// Registered plugin parameter node creation function prototype.
 AK_CALLBACK( AK::IAkPluginParam*, AkCreateParamCallback )( AK::IAkPluginMemAlloc * in_pAllocator );
+
+struct AkPlatformInitSettings;
+struct AkInitSettings;
 
 namespace AK
 {
@@ -1305,6 +1305,14 @@ namespace AK
 			AkReal32 & out_fAzimuth,						///< Returned azimuthal angle, in radians.
 			AkReal32 & out_fElevation						///< Returned elevation angle, in radians.
 			) const = 0;
+
+		/// Get the platform init settings that the wwise sound engine has been initialized with.
+		/// This function returns a null pointer if called with an instance of RenderFXGlobalContext.
+		virtual const AkPlatformInitSettings* GetPlatformInitSettings() const = 0;
+		
+		/// Get the init settings that the wwise sound engine has been initialized with
+		/// This function returns a null pointer if called with an instance of RenderFXGlobalContext.
+		virtual const AkInitSettings* GetInitSettings() const = 0;
 	};
 
 	/// This class takes care of the registration of plug-ins in the Wwise engine.  Plug-in developers must provide one instance of this class for each plug-in.
@@ -1377,5 +1385,8 @@ namespace AK
 	void *_pluginName_##_linkonceonly = (void*)&_pluginName_##Registration;
 
 #define DEFINE_PLUGIN_REGISTER_HOOK AK_DLLEXPORT AK::PluginRegistration * g_pAKPluginList = NULL;
+
+#define AK_GET_SINK_TYPE_FROM_DEVICE_KEY(_key) ((AkUInt32)(_key & 0xffffffff))
+#define AK_GET_DEVICE_ID_FROM_DEVICE_KEY(_key) ((AkUInt32)(_key >> 32))
 
 #endif // _IAK_PLUGIN_H_

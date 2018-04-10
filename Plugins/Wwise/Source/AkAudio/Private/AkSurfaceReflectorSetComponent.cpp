@@ -59,13 +59,13 @@ void UAkSurfaceReflectorSetComponent::InitializeParentBrush()
 	}
 }
 
+
 void UAkSurfaceReflectorSetComponent::PostLoad()
 {
 	Super::PostLoad();
 
-	InitializeParentBrush();
-
 #if WITH_EDITOR
+	InitializeParentBrush();
 	UpdatePolys();
 	UpdateText(IsSelected());
 #endif
@@ -108,7 +108,7 @@ FText UAkSurfaceReflectorSetComponent::GetPolyText(int32 PolyIdx) const
 {
 	if (AcousticPolys.Num() > PolyIdx && AcousticPolys[PolyIdx].Texture)
 	{
-		return FText::FromString(AcousticPolys[PolyIdx].Texture->GetName());
+		return FText::FromString(FString::FromInt(PolyIdx) + FString(":") +  AcousticPolys[PolyIdx].Texture->GetName());
 	}
 	else
 	{
@@ -123,9 +123,9 @@ void UAkSurfaceReflectorSetComponent::UpdateText(bool Visible)
 	{
 		if (TextVisualizers[i])
 		{
-			TextVisualizers[i]->SetText(GetPolyText(i));
+		TextVisualizers[i]->SetText(GetPolyText(i));
 			TextVisualizers[i]->SetVisibility(bReallyVisible);
-		}
+	}
 	}
 }
 
@@ -168,11 +168,11 @@ void UAkSurfaceReflectorSetComponent::UpdatePolys()
 			int32 idx = TextVisualizers.Add(NewObject<UTextRenderComponent>(GetOuter(), *VizName));
 			if (TextVisualizers[idx])
 			{
-				TextVisualizers[idx]->SetHorizontalAlignment(EHorizTextAligment::EHTA_Center);
+			TextVisualizers[idx]->SetHorizontalAlignment(EHorizTextAligment::EHTA_Center);
 				TextVisualizers[idx]->RegisterComponentWithWorld(GetWorld());
 				TextVisualizers[idx]->bIsEditorOnly = true;
-			}
 		}
+	}
 
 		OnRefreshDetails.ExecuteIfBound();
 	}
@@ -299,7 +299,7 @@ void UAkSurfaceReflectorSetComponent::SendSurfaceReflectorSet()
 
 		if (TrianglesToSend.Num() > 0)
 		{
-			if (AkAudioDevice->AddGeometrySet(AkGeometrySetID(this), TrianglesToSend.GetData(), TrianglesToSend.Num()) == AK_Success)
+			if (AkAudioDevice->SetGeometry(AkGeometrySetID(this), TrianglesToSend.GetData(), TrianglesToSend.Num()) == AK_Success)
 				GeometryHasBeenSent = true;
 		}
 	}
@@ -322,5 +322,5 @@ void UAkSurfaceReflectorSetComponent::UpdateSurfaceReflectorSet()
 void UAkSurfaceReflectorSetComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
-	RemoveSurfaceReflectorSet();
+		RemoveSurfaceReflectorSet();
 }

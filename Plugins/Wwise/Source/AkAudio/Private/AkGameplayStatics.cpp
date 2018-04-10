@@ -224,6 +224,26 @@ void UAkGameplayStatics::SetSwitch( FName SwitchGroup, FName SwitchState, class 
 	}
 }
 
+void UAkGameplayStatics::SetMultiplePositions(UAkComponent* GameObjectAkComponent, TArray<FTransform> Positions,
+                                              AkMultiPositionType MultiPositionType /*= AkMultiPositionType::MultiPositionType_MultiDirections*/)
+{
+    FAkAudioDevice * pAudioDevice = FAkAudioDevice::Get();
+    if (pAudioDevice)
+    {
+        pAudioDevice->SetMultiplePositions(GameObjectAkComponent, Positions, MultiPositionType);
+    }
+}
+
+void UAkGameplayStatics::SetMultipleChannelEmitterPositions(UAkComponent* GameObjectAkComponent, TArray<AkChannelConfiguration> ChannelMasks, TArray<FTransform> Positions,
+                                                            AkMultiPositionType MultiPositionType /*= AkMultiPositionType::MultiPositionType_MultiDirections*/)
+{
+    FAkAudioDevice * pAudioDevice = FAkAudioDevice::Get();
+    if (pAudioDevice)
+    {
+        pAudioDevice->SetMultiplePositions(GameObjectAkComponent, ChannelMasks, Positions, MultiPositionType);
+    }
+}
+
 void UAkGameplayStatics::UseReverbVolumes(bool inUseReverbVolumes, class AActor* Actor )
 {
 	if ( Actor == NULL )
@@ -245,14 +265,11 @@ void UAkGameplayStatics::UseReverbVolumes(bool inUseReverbVolumes, class AActor*
 
 void UAkGameplayStatics::UseEarlyReflections(class AActor* Actor,
 	class UAkAuxBus* AuxBus,
-	bool Left,
-	bool Right,
-	bool Floor,
-	bool Ceiling,
-	bool Back,
-	bool Front,
+	int Order,
+	float BusSendGain,
+	float MaxPathLength,
 	bool SpotReflectors,
-	const FString& AuxBusName) 
+	const FString& AuxBusName)
 {
 	if (Actor == NULL) 
 	{
@@ -266,7 +283,7 @@ void UAkGameplayStatics::UseEarlyReflections(class AActor* Actor,
 		UAkComponent * ComponentToSet = AudioDevice->GetAkComponent(Actor->GetRootComponent(), FName(), NULL, EAttachLocation::KeepRelativeOffset);
 		if (ComponentToSet != NULL)
 		{
-			ComponentToSet->UseEarlyReflections(AuxBus, Left, Right, Floor, Ceiling, Back, Front, SpotReflectors, AuxBusName);
+			ComponentToSet->UseEarlyReflections(AuxBus, Order, BusSendGain, MaxPathLength, SpotReflectors, AuxBusName);
 		}
 	}
 }
@@ -290,72 +307,13 @@ void UAkGameplayStatics::SetOutputBusVolume(float BusVolume, class AActor* Actor
 	}
 }
 
-void UAkGameplayStatics::GetChannelConfig(AkChannelConfiguration ChannelConfiguration, AkChannelConfig& config)
-{
-	switch (ChannelConfiguration)
-	{
-	case AkChannelConfiguration::Ak_1_0:
-		config.SetStandard(AK_SPEAKER_SETUP_MONO);
-		break;
-	case AkChannelConfiguration::Ak_2_0:
-		config.SetStandard(AK_SPEAKER_SETUP_STEREO);
-		break;
-	case AkChannelConfiguration::Ak_3_0:
-		config.SetStandard(AK_SPEAKER_SETUP_3STEREO);
-		break;
-	case AkChannelConfiguration::Ak_4_0:
-		config.SetStandard(AK_SPEAKER_SETUP_4);
-		break;
-	case AkChannelConfiguration::Ak_5_1:
-		config.SetStandard(AK_SPEAKER_SETUP_5POINT1);
-		break;
-	case AkChannelConfiguration::Ak_7_1:
-		config.SetStandard(AK_SPEAKER_SETUP_7POINT1);
-		break;
-	case AkChannelConfiguration::Ak_5_1_2:
-		config.SetStandard(AK_SPEAKER_SETUP_DOLBY_5_1_2);
-		break;
-	case AkChannelConfiguration::Ak_7_1_2:
-		config.SetStandard(AK_SPEAKER_SETUP_DOLBY_7_1_2);
-		break;
-	case AkChannelConfiguration::Ak_7_1_4:
-		config.SetStandard(AK_SPEAKER_SETUP_DOLBY_7_1_4);
-		break;
-	case AkChannelConfiguration::Ak_Auro_9_1:
-		config.SetStandard(AK_SPEAKER_SETUP_AURO_9POINT1);
-		break;
-	case AkChannelConfiguration::Ak_Auro_10_1:
-		config.SetStandard(AK_SPEAKER_SETUP_AURO_10POINT1);
-		break;
-	case AkChannelConfiguration::Ak_Auro_11_1:
-		config.SetStandard(AK_SPEAKER_SETUP_AURO_11POINT1);
-		break;
-	case AkChannelConfiguration::Ak_Auro_13_1:
-		config.SetStandard(AK_SPEAKER_SETUP_AURO_13POINT1_751);
-		break;
-	case AkChannelConfiguration::Ak_Ambisonics_1st_order:
-		config.SetAmbisonic(4);
-		break;
-	case AkChannelConfiguration::Ak_Ambisonics_2nd_order:
-		config.SetAmbisonic(9);
-		break;
-	case AkChannelConfiguration::Ak_Ambisonics_3rd_order:
-		config.SetAmbisonic(16);
-		break;
-	case AkChannelConfiguration::Ak_Parent:
-	default:
-		config.Clear();
-		break;
-	}
-}
-
 void UAkGameplayStatics::SetBusConfig(const FString& in_BusName, AkChannelConfiguration ChannelConfiguration)
 {
 	FAkAudioDevice * AudioDevice = FAkAudioDevice::Get();
 	if (AudioDevice)
 	{
 		AkChannelConfig config;
-		GetChannelConfig(ChannelConfiguration, config);
+        FAkAudioDevice::GetChannelConfig(ChannelConfiguration, config);
 		AudioDevice->SetBusConfig(in_BusName, config);
 	}
 }

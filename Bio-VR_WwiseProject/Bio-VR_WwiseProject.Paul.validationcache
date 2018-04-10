@@ -1,28 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ValidationCache Version="1" SchemaVersion="80">
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Actor-Mixer Hierarchy\Default Work Unit.wwu" DateLow="2589422134" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Attenuations\Default Work Unit.wwu" DateLow="2589842872" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Audio Devices\Default Work Unit.wwu" DateLow="2590503760" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Bio-VR_WwiseProject.wproj" DateLow="2589301951" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Control Surface Sessions\Default Work Unit.wwu" DateLow="2589902857" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Conversion Settings\Default Work Unit.wwu" DateLow="2590343518" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Conversion Settings\Factory Conversion Settings.wwu" DateLow="3120861256" DateHigh="30658354"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Dynamic Dialogue\Default Work Unit.wwu" DateLow="2590453682" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Effects\Default Work Unit.wwu" DateLow="2589592393" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Effects\Factory Effects.wwu" DateLow="3120891394" DateHigh="30658354"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Events\Default Work Unit.wwu" DateLow="2589482222" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Game Parameters\Default Work Unit.wwu" DateLow="2590173263" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Interactive Music Hierarchy\Default Work Unit.wwu" DateLow="2589762648" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Master-Mixer Hierarchy\Default Work Unit.wwu" DateLow="2589532298" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Mixing Sessions\Default Work Unit.wwu" DateLow="2590123294" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Modulators\Default Work Unit.wwu" DateLow="2590393597" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Presets\Default Work Unit.wwu" DateLow="2589652478" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Queries\Default Work Unit.wwu" DateLow="2589962945" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Queries\Factory Queries.wwu" DateLow="3120881378" DateHigh="30658354"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\SoundBanks\Default Work Unit.wwu" DateLow="2589702556" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Soundcaster Sessions\Default Work Unit.wwu" DateLow="2590283426" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\States\Default Work Unit.wwu" DateLow="2590223338" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Switches\Default Work Unit.wwu" DateLow="2589362042" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Triggers\Default Work Unit.wwu" DateLow="2590013021" DateHigh="30658789"/>
-	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Virtual Acoustics\Default Work Unit.wwu" DateLow="2590063099" DateHigh="30658789"/>
+<ValidationCache Version="1" SchemaVersion="85">
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Actor-Mixer Hierarchy\Default Work Unit.wwu" DateLow="1523380323" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Attenuations\Default Work Unit.wwu" DateLow="1523380323" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Audio Devices\Default Work Unit.wwu" DateLow="1523380324" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Bio-VR_WwiseProject.Paul.wsettings" DateLow="1523380322" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Bio-VR_WwiseProject.wproj" DateLow="1523380323" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Control Surface Sessions\Default Work Unit.wwu" DateLow="1523380324" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Conversion Settings\Default Work Unit.wwu" DateLow="1523380323" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Conversion Settings\Factory Conversion Settings.wwu" DateLow="1523380323" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Dynamic Dialogue\Default Work Unit.wwu" DateLow="1523380323" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Effects\Default Work Unit.wwu" DateLow="1523380324" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Effects\Factory Effects.wwu" DateLow="1523380324" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Events\Default Work Unit.wwu" DateLow="1523381898" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Game Parameters\Default Work Unit.wwu" DateLow="1523380324" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Interactive Music Hierarchy\Default Work Unit.wwu" DateLow="1523380324" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Master-Mixer Hierarchy\Default Work Unit.wwu" DateLow="1523380323" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Mixing Sessions\Default Work Unit.wwu" DateLow="1523380324" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Modulators\Default Work Unit.wwu" DateLow="1523380324" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Presets\Default Work Unit.wwu" DateLow="1523380324" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Queries\Default Work Unit.wwu" DateLow="1523380324" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Queries\Factory Queries.wwu" DateLow="1523380324" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\SoundBanks\Default Work Unit.wwu" DateLow="1523380324" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Soundcaster Sessions\Default Work Unit.wwu" DateLow="1523380324" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\States\Default Work Unit.wwu" DateLow="1523380323" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Switches\Default Work Unit.wwu" DateLow="1523380323" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Triggers\Default Work Unit.wwu" DateLow="1523380324" DateHigh="0"/>
+	<ValidationCacheItem File="D:\Tethered\Bio-VR\Bio-VR\Bio-VR_WwiseProject\Virtual Acoustics\Default Work Unit.wwu" DateLow="1523380324" DateHigh="0"/>
 </ValidationCache>

@@ -19,7 +19,8 @@ Super(ObjectInitializer)
 	StopWhenOwnerIsDestroyed = true;
 	CurrentlyPlaying = false;
 	
-	AkComponent = ObjectInitializer.CreateDefaultSubobject<UAkComponent>(this, TEXT("AkAudioComponent0"));
+	static const FName ComponentName = TEXT("AkAudioComponent0");
+	AkComponent = ObjectInitializer.CreateDefaultSubobject<UAkComponent>(this, ComponentName);
 	
 	AkComponent->StopWhenOwnerDestroyed = StopWhenOwnerIsDestroyed;
 

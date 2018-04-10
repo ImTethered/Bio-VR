@@ -21,7 +21,6 @@ struct AkFileCustomParam
 
 	virtual ~AkFileCustomParam() {}
 	virtual AKRESULT DoWork(AkAsyncIOTransferInfo& io_transferInfo) = 0;
-	virtual void Cancel(AkAsyncIOTransferInfo & io_transferInfo, bool& io_bCancelAllTransfersForThisFile) {}
 
 	static AkFileCustomParam* GetFileCustomParam(const AkFileDesc& fileDesc);
 	static void SetupFileDesc(AkFileDesc& fileDesc, AkFileCustomParam* FileCustomParam);

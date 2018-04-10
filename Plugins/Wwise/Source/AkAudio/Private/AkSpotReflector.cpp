@@ -6,7 +6,6 @@
 #include "Components/BillboardComponent.h"
 
 #include <AK/SpatialAudio/Common/AkSpatialAudio.h>
-#include <AK/Plugin/AkReflectGameData.h>
 
 // Sets default values
 AAkSpotReflector::AAkSpotReflector(const FObjectInitializer& ObjectInitializer)
@@ -16,10 +15,12 @@ AAkSpotReflector::AAkSpotReflector(const FObjectInitializer& ObjectInitializer)
     , Level(1.f)
 	, m_uAuxBusID(AK_INVALID_AUX_ID)
 {
-	RootComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("SpotReclectorRootComponent"));
+	static const FName ComponentName = TEXT("SpotReclectorRootComponent");
+	RootComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, ComponentName);
 
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
+	static const FName SpriteComponentName = TEXT("Sprite");
+	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(SpriteComponentName);
 	if (SpriteComponent) 
 	{
 		SpriteComponent->SetSprite(LoadObject<UTexture2D>(NULL, TEXT("/Wwise/S_AkSpotReflector.S_AkSpotReflector")));
@@ -37,12 +38,29 @@ AAkSpotReflector::AAkSpotReflector(const FObjectInitializer& ObjectInitializer)
 void AAkSpotReflector::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	AkReflectImageSource sourceInfo;
-	FAkAudioDevice* pDev = FAkAudioDevice::Get();
 
+#if UE_4_17_OR_LATER
+	const auto& RootTransform = RootComponent->GetComponentTransform();
+#else
+	const auto& RootTransform = RootComponent->ComponentToWorld;
+#endif // UE_4_17_OR_LATER
+	
+	FAkAudioDevice* pDev = FAkAudioDevice::Get();
 	if(!pDev)
 		return;
+
+	AkImageSourceSettings sourceInfo(
+		FAkAudioDevice::FVectorToAKVector(RootTransform.GetTranslation()),
+		DistanceScalingFactor, Level);
+
+#if WITH_EDITOR
+	sourceInfo.SetName(TCHAR_TO_ANSI(*GetActorLabel()));
+#endif // WITH_EDITOR
+
+	if (AcousticTexture)
+	{
+		sourceInfo.SetOneTexture(FAkAudioDevice::Get()->GetIDFromString(AcousticTexture->GetName()));
+	}
 
 	if (AuxBus)
 	{
@@ -56,41 +74,12 @@ void AAkSpotReflector::BeginPlay()
 			m_uAuxBusID = AK_INVALID_UNIQUE_ID;
 	}
 
-	sourceInfo.uNumChar = 0;
-	sourceInfo.pName = NULL;
-
-	sourceInfo.fDistanceScalingFactor = DistanceScalingFactor;
-	sourceInfo.fLevel = Level;
-
-	sourceInfo.uNumTexture = 0;
-
-	if (AcousticTexture)
-	{
-		sourceInfo.uNumTexture = 1;
-		sourceInfo.arTextureID[0] = FAkAudioDevice::Get()->GetIDFromString(AcousticTexture->GetName());
-	}
-
-#if UE_4_17_OR_LATER
-	const auto& RootTransform = RootComponent->GetComponentTransform();
-#else
-	const auto& RootTransform = RootComponent->ComponentToWorld;
-#endif // UE_4_17_OR_LATER
-
-	sourceInfo.uID = (AkImageSourceID)(uint64)this;
-	sourceInfo.sourcePosition = FAkAudioDevice::FVectorToAKVector(RootTransform.GetTranslation());
-
-
 	AkRoomID roomID;
 	TArray<UAkRoomComponent*> AkRooms = pDev->FindRoomComponentsAtLocation(RootTransform.GetTranslation(), GetWorld(), 1);
 	if (AkRooms.Num() > 0)
 		roomID = AkRooms[0]->GetRoomID();
 
-#if WITH_EDITOR
-	FString Name = GetActorLabel();
-#else
-	FString Name = "";
-#endif
-	pDev->AddImageSource(sourceInfo, m_uAuxBusID, roomID, Name);
+	pDev->SetImageSource(this, sourceInfo, m_uAuxBusID, roomID);
 }
 
 void AAkSpotReflector::BeginDestroy()

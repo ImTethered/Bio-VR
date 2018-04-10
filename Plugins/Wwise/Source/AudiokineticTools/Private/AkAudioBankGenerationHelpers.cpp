@@ -10,7 +10,10 @@
 #include "SGenerateSoundBanks.h"
 #include "MainFrame.h"
 #include "AkSettings.h"
+#include "AssetRegistryModule.h"
 #include "Interfaces/IMainFrameModule.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "Interfaces/ITargetPlatform.h"
 
 #define LOCTEXT_NAMESPACE "AkAudio"
 
@@ -89,16 +92,21 @@ FString WwiseBnkGenHelper::GetLinkedProjectPath()
 	return ProjectPath;
 }
 
-int32 RunWwiseBlockingProcess( const TCHAR* Parms )
+int32 RunWwiseBlockingProcess( const TCHAR* Parms, const FString* WwisePathOverride = nullptr )
 {
     int32 ReturnCode = 0;
     
     // Starting the build in a separate process.
 #if PLATFORM_WINDOWS
     FString wwiseCmd = GetWwiseApplicationPath();
+    if (WwisePathOverride)
+    {
+        wwiseCmd = *WwisePathOverride;
+    }
 #else
     FString wwiseCmd("/bin/sh");
 #endif
+
     UE_LOG(LogAk, Log, TEXT("Starting Wwise SoundBank generation with the following command line:"));
     UE_LOG(LogAk, Log, TEXT("%s %s"), *wwiseCmd, Parms);
     
@@ -165,6 +173,68 @@ FString WwiseBnkGenHelper::GetDefaultSBDefinitionFilePath()
 
 FString GetBankGenerationUserDirectory( const TCHAR * in_szPlatformDir );
 
+
+bool WwiseBnkGenHelper::GenerateDefinitionFile(TArray< TSharedPtr<FString> >& BanksToGenerate, TMap<FString, TSet<UAkAudioEvent*> >& BankToEventSet)
+{
+	TMap<FString, TSet<UAkAuxBus*> > BankToAuxBusSet;
+	{
+		// Force load of event assets to make sure definition file is complete
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		TArray<FAssetData> EventAssets;
+		AssetRegistryModule.Get().GetAssetsByClass(UAkAudioEvent::StaticClass()->GetFName(), EventAssets);
+
+		for (int32 AssetIndex = 0; AssetIndex < EventAssets.Num(); ++AssetIndex)
+		{
+			FString EventAssetPath = EventAssets[AssetIndex].ObjectPath.ToString();
+			UAkAudioEvent * pEvent = LoadObject<UAkAudioEvent>(NULL, *EventAssetPath, NULL, 0, NULL);
+			if (BanksToGenerate.ContainsByPredicate([&](TSharedPtr<FString> Bank) {
+				if (pEvent->RequiredBank)
+				{
+					return pEvent->RequiredBank->GetName() == *Bank;
+				}
+				return false;
+
+			}))
+			{
+				if (pEvent->RequiredBank)
+				{
+					TSet<UAkAudioEvent*>& EventPtrSet = BankToEventSet.FindOrAdd(pEvent->RequiredBank->GetName());
+					EventPtrSet.Add(pEvent);
+				}
+			}
+		}
+
+		// Force load of AuxBus assets to make sure definition file is complete
+		TArray<FAssetData> AuxBusAssets;
+		AssetRegistryModule.Get().GetAssetsByClass(UAkAuxBus::StaticClass()->GetFName(), AuxBusAssets);
+
+		for (int32 AssetIndex = 0; AssetIndex < AuxBusAssets.Num(); ++AssetIndex)
+		{
+			FString AuxBusAssetPath = AuxBusAssets[AssetIndex].ObjectPath.ToString();
+			UAkAuxBus * pAuxBus = LoadObject<UAkAuxBus>(NULL, *AuxBusAssetPath, NULL, 0, NULL);
+			if (BanksToGenerate.ContainsByPredicate([&](TSharedPtr<FString> Bank) {
+				if (pAuxBus->RequiredBank)
+				{
+					return pAuxBus->RequiredBank->GetName() == *Bank;
+				}
+				return false;
+			}))
+			{
+				if (pAuxBus->RequiredBank)
+				{
+					TSet<UAkAuxBus*>& EventPtrSet = BankToAuxBusSet.FindOrAdd(pAuxBus->RequiredBank->GetName());
+					EventPtrSet.Add(pAuxBus);
+				}
+			}
+		}
+	}
+
+	FString DefFileContent = WwiseBnkGenHelper::DumpBankContentString(BankToEventSet);
+	DefFileContent += WwiseBnkGenHelper::DumpBankContentString(BankToAuxBusSet);
+	return FFileHelper::SaveStringToFile(DefFileContent, *WwiseBnkGenHelper::GetDefaultSBDefinitionFilePath());
+
+}
+
 /**
  * Dump the bank definition to file
  *
@@ -224,10 +294,10 @@ FString WwiseBnkGenHelper::DumpBankContentString(TMap<FString, TSet<UAkAuxBus*> 
  * @param in_rBankNames				Names of the banks
  * @param in_bImportDefinitionFile	Use an import definition file
  */
-int32 WwiseBnkGenHelper::GenerateSoundBanks( TArray< TSharedPtr<FString> >& in_rBankNames, TArray< TSharedPtr<FString> >& in_PlatformNames, bool in_bImportDefinitionFile )
+int32 WwiseBnkGenHelper::GenerateSoundBanks( TArray< TSharedPtr<FString> >& in_rBankNames, TArray< TSharedPtr<FString> >& in_PlatformNames, const FString* WwisePathOverride/* = nullptr*/)
 {
 	long cNumBanks = in_rBankNames.Num();
-	if( cNumBanks || in_bImportDefinitionFile )
+	if( cNumBanks )
 	{
 		//////////////////////////////////////////////////////////////////////////////////////
 		// For more information about how to generate banks using the command line, 
@@ -239,9 +309,14 @@ int32 WwiseBnkGenHelper::GenerateSoundBanks( TArray< TSharedPtr<FString> >& in_r
 #if PLATFORM_WINDOWS
         FString CommandLineParams("");
 #else
-        FString CommandLineParams = GetWwiseApplicationPath();
+        FString CommandLineParams("");
+        if(WwisePathOverride)
+            CommandLineParams += *WwisePathOverride;
+        else
+            CommandLineParams += GetWwiseApplicationPath();
 #endif
-		CommandLineParams += FString::Printf( TEXT(" \"%s\""), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*GetLinkedProjectPath()) );
+
+        CommandLineParams += FString::Printf( TEXT(" \"%s\""), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*GetLinkedProjectPath()) );
         
         // add the flag to request to generate sound banks if required.
 		CommandLineParams += TEXT(" -GenerateSoundBanks");
@@ -256,13 +331,10 @@ int32 WwiseBnkGenHelper::GenerateSoundBanks( TArray< TSharedPtr<FString> >& in_r
 		}
 
 		// For each bank to be generated, add " -ImportDefinitionFile BankName"
-		if( in_bImportDefinitionFile )
-		{
-            CommandLineParams += FString::Printf(
-				TEXT(" -ImportDefinitionFile \"%s\""), 	
-				*IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite( *GetDefaultSBDefinitionFilePath() )
-				);
-		}
+        CommandLineParams += FString::Printf(
+			TEXT(" -ImportDefinitionFile \"%s\""), 	
+			*IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite( *GetDefaultSBDefinitionFilePath() )
+			);
 
 		// We could also specify the -Save flag.
 		// It would cause the newly imported definition files to be persisted in the Wwise project files.
@@ -302,7 +374,7 @@ int32 WwiseBnkGenHelper::GenerateSoundBanks( TArray< TSharedPtr<FString> >& in_r
 
 		// To get more information on how banks can be generated from the comand lines.
 		// Refer to the section: Generating Banks from the Command Line in the Wwise SDK documentation.
-		return RunWwiseBlockingProcess( *CommandLineParams );
+		return RunWwiseBlockingProcess( *CommandLineParams, WwisePathOverride);
 	}
 
 	return -2;
@@ -331,9 +403,171 @@ FString GetBankGenerationUserDirectory( const TCHAR * in_szPlatformDir )
 	return BankGenerationUserDirectory;
 }
 
+// Gets most recently modified JSON SoundBank metadata file
+struct BankNameToPath : private IPlatformFile::FDirectoryVisitor
+{
+	FString BankPath;
+
+	BankNameToPath(const FString& BankName, const TCHAR* BaseDirectory, IPlatformFile& PlatformFile)
+		: BankName(BankName), PlatformFile(PlatformFile)
+	{
+		Visit(BaseDirectory, true);
+		PlatformFile.IterateDirectory(BaseDirectory, *this);
+	}
+
+	bool IsValid() const { return StatData.bIsValid; }
+
+private:
+	virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
+	{
+		if (bIsDirectory)
+		{
+			FString NewBankPath = FilenameOrDirectory;
+			NewBankPath += TEXT("\\");
+			NewBankPath += BankName + TEXT(".json");
+
+			FFileStatData NewStatData = PlatformFile.GetStatData(*NewBankPath);
+			if (NewStatData.bIsValid && !NewStatData.bIsDirectory)
+			{
+				if (!StatData.bIsValid || NewStatData.ModificationTime > StatData.ModificationTime)
+				{
+					StatData = NewStatData;
+					BankPath = NewBankPath;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	const FString& BankName;
+	IPlatformFile& PlatformFile;
+	FFileStatData StatData;
+};
+
+bool WwiseBnkGenHelper::FetchAttenuationInfo(const TMap<FString, TSet<UAkAudioEvent*> >& BankToEventSet)
+{
+	FString PlatformName = GetTargetPlatformManagerRef().GetRunningTargetPlatform()->PlatformName();
+	FString BankBasePath = WwiseBnkGenHelper::GetBankGenerationFullDirectory(*PlatformName);
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	const TCHAR* BaseDirectory = *BankBasePath;
+
+	FString FileContents; // cache the file contents - in case we are opening large files
+
+	for (TMap<FString, TSet<UAkAudioEvent*> >::TConstIterator BankIt(BankToEventSet); BankIt; ++BankIt)
+	{
+		FString BankName = BankIt.Key();
+		BankNameToPath NameToPath(BankName, BaseDirectory, PlatformFile);
+
+		if (NameToPath.IsValid())
+		{
+			const TCHAR* BankPath = *NameToPath.BankPath;
+			const TSet<UAkAudioEvent*>& EventsInBank = BankIt.Value();
+
+			FileContents.Reset();
+			if (!FFileHelper::LoadFileToString(FileContents, BankPath))
+			{
+				UE_LOG(LogAk, Warning, TEXT("Failed to load file contents of JSON SoundBank metadata file: %s"), BankPath);
+				continue;
+			}
+
+			TSharedPtr< FJsonObject > JsonObject;
+			TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create(FileContents);
+
+			if (!FJsonSerializer::Deserialize(Reader, JsonObject) || !JsonObject.IsValid())
+			{
+				UE_LOG(LogAk, Warning, TEXT("Unable to parse JSON SoundBank metadata file: %s"), BankPath);
+				continue;
+			}
+
+			TArray< TSharedPtr<FJsonValue> > SoundBanks = JsonObject->GetObjectField("SoundBanksInfo")->GetArrayField("SoundBanks");
+			TSharedPtr<FJsonObject> Obj = SoundBanks[0]->AsObject();
+			TArray< TSharedPtr<FJsonValue> > Events = Obj->GetArrayField("IncludedEvents");
+
+			for (int i = 0; i < Events.Num(); i++)
+			{
+				TSharedPtr<FJsonObject> EventObj = Events[i]->AsObject();
+				FString EventName = EventObj->GetStringField("Name");
+
+				UAkAudioEvent* Event = nullptr;
+				for (auto TestEvent : EventsInBank)
+				{
+					if (TestEvent->GetName() == EventName)
+					{
+						Event = TestEvent;
+						break;
+					}
+				}
+
+				if (Event == nullptr)
+					continue;
+
+				bool Changed = false;
+				FString ValueString;
+				if (EventObj->TryGetStringField("MaxAttenuation", ValueString))
+				{
+					const float EventRadius = FCString::Atof(*ValueString);
+					if (Event->MaxAttenuationRadius != EventRadius)
+					{
+						Event->MaxAttenuationRadius = EventRadius;
+						Changed = true;
+					}
+				}
+				else
+				{
+					if (Event->MaxAttenuationRadius != 0)
+					{
+						// No attenuation info in json file, set to 0.
+						Event->MaxAttenuationRadius = 0;
+						Changed = true;
+					}
+				}
+
+				// if we can't find "DurationType", then we assume infinite
+				const bool IsInfinite = !EventObj->TryGetStringField("DurationType", ValueString) || (ValueString == "Infinite");
+				if (Event->IsInfinite != IsInfinite)
+				{
+					Event->IsInfinite = IsInfinite;
+					Changed = true;
+				}
+
+				if (!IsInfinite)
+				{
+					if (EventObj->TryGetStringField("DurationMin", ValueString))
+					{
+						const float DurationMin = FCString::Atof(*ValueString);
+						if (Event->MinimumDuration != DurationMin)
+						{
+							Event->MinimumDuration = DurationMin;
+							Changed = true;
+						}
+					}
+
+					if (EventObj->TryGetStringField("DurationMax", ValueString))
+					{
+						const float DurationMax = FCString::Atof(*ValueString);
+						if (Event->MaximumDuration != DurationMax)
+						{
+							Event->MaximumDuration = DurationMax;
+							Changed = true;
+						}
+					}
+				}
+
+				if (Changed)
+				{
+					Event->Modify(true);
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
 /** Create the "Generate SoundBanks" window
  */
-void CreateGenerateSoundBankWindow(TArray<TWeakObjectPtr<UAkAudioBank>>* pSoundBanks)
+void WwiseBnkGenHelper::CreateGenerateSoundBankWindow(TArray<TWeakObjectPtr<UAkAudioBank>>* pSoundBanks, bool in_bShouldSaveWwiseProject)
 {
 	TSharedRef<SWindow> WidgetWindow =	SNew(SWindow)
 		.Title( LOCTEXT("AkAudioGenerateSoundBanks", "Generate SoundBanks") )
@@ -344,6 +578,7 @@ void CreateGenerateSoundBankWindow(TArray<TWeakObjectPtr<UAkAudioBank>>* pSoundB
 		.FocusWhenFirstShown(true);
 
 	TSharedRef<SGenerateSoundBanks> WindowContent = SNew(SGenerateSoundBanks, pSoundBanks);
+    WindowContent->SetShouldSaveWwiseProject(in_bShouldSaveWwiseProject);
 	if (!WindowContent->ShouldDisplayWindow())
 	{
 		return;
@@ -389,7 +624,7 @@ void AddGenerateAkBanksToBuildMenu(FMenuBuilder& MenuBuilder)
 	{
 		FUIAction UIAction;
 
-		UIAction.ExecuteAction.BindStatic(&CreateGenerateSoundBankWindow, (TArray<TWeakObjectPtr<UAkAudioBank>>*)nullptr);
+		UIAction.ExecuteAction.BindStatic(&WwiseBnkGenHelper::CreateGenerateSoundBankWindow, (TArray<TWeakObjectPtr<UAkAudioBank>>*)nullptr, false);
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("AkAudioBank_GenerateDefinitionFile","Generate SoundBanks..."),
 			LOCTEXT("AkAudioBank_GenerateDefinitionFileTooltip", "Generates Wwise SoundBanks."),

@@ -19,16 +19,14 @@
 #include "SequencerSectionPainter.h"
 
 #include "AkMatineeImportTools.h"
-#include "AudiokineticToolsStyle.h"
+#include "AkAudioStyle.h"
 
 #include "ScopedTransaction.h"
 #include "Layout/SBorder.h"
 #include "Layout/SUniformGridPanel.h"
-#include "Input/SButton.h"
 #include "Input/SEditableTextBox.h"
 #include "EditorStyleSet.h"
 #include "Editor.h"
-
 #define LOCTEXT_NAMESPACE "MovieSceneAkAudioRTPCTrackEditor"
 
 
@@ -133,7 +131,7 @@ TSharedRef<ISequencerSection> FMovieSceneAkAudioRTPCTrackEditor::MakeSectionInte
 
 const FSlateBrush* FMovieSceneAkAudioRTPCTrackEditor::GetIconBrush() const
 {
-	return FAudiokineticToolsStyle::Get().GetBrush("AudiokineticTools.RTPCIcon");
+	return FAkAudioStyle::Get().GetBrush("AudiokineticTools.RTPCIcon");
 }
 
 
@@ -334,7 +332,7 @@ void FMovieSceneAkAudioRTPCTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuil
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AddAkAudioRTPCTrack", "AkAudioRTPC"),
 		LOCTEXT("AddAkAudioRTPCMasterTrackTooltip", "Adds a master AkAudioRTPC track."),
-		FSlateIcon(FAudiokineticToolsStyle::GetStyleSetName(), "AudiokineticTools.RTPCIcon"),
+		FSlateIcon(FAkAudioStyle::GetStyleSetName(), "AudiokineticTools.RTPCIcon"),
 		FUIAction(FExecuteAction::CreateLambda([=]
 		{
 			TryAddAkAudioRTPCTrack(FCreateAkAudioRTPCTrack::CreateLambda(CreateAkAudioRTPCTrack));
@@ -354,7 +352,7 @@ void FMovieSceneAkAudioRTPCTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AddAkAudioRTPCTrack", "AkAudioRTPC"),
 		LOCTEXT("AddAkAudioRTPCTrackTooltip", "Adds an AkAudioRTPC track."),
-		FSlateIcon(FAudiokineticToolsStyle::GetStyleSetName(), "AudiokineticTools.RTPCIcon"),
+		FSlateIcon(FAkAudioStyle::GetStyleSetName(), "AudiokineticTools.RTPCIcon"),
 		FUIAction(FExecuteAction::CreateLambda([=]
 		{
 			TryAddAkAudioRTPCTrack(FCreateAkAudioRTPCTrack::CreateLambda(CreateAkAudioRTPCTrack));
